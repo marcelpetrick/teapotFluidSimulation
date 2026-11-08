@@ -39,6 +39,7 @@ import {
 import { chartBox, drawBiasChart, drawBinsChart, drawTimeSeries } from '../render/charts';
 import { ShapeEditor } from './shapeEditor';
 import { CONTROL_HELP, SETTING_HELP } from './help';
+import { Soundscape, pourIntensity, type AudioFactory } from '../audio/soundscape';
 
 export interface WorkerLike {
   postMessage(msg: ToWorker): void;
@@ -58,6 +59,10 @@ export interface AppDeps {
   copy: (text: string) => Promise<void>;
   reducedMotion: boolean;
   version: string;
+  /** Creates the Web Audio context on demand (null when unsupported). */
+  audio: AudioFactory;
+  /** Per-viewer preferences (e.g. the chosen look); may fail silently. */
+  prefs: { get(key: string): string | null; set(key: string, value: string): void };
 }
 
 interface StoredFrame {
@@ -109,8 +114,12 @@ export class App {
   private recorded = false;
   lastError = '';
 
+  readonly sound: Soundscape;
+  private lastPour = { time: -1, volume: 0 };
+
   constructor(deps: AppDeps) {
     this.d = deps;
+    this.sound = new Soundscape(deps.audio);
     this.settings = settingsFromQuery(deps.location.search);
     deps.worker.onmessage = (e) => this.onMessage(e.data);
     deps.worker.onerror = () => this.setStatus('The simulation worker failed. Reload the page to retry.');
@@ -125,6 +134,7 @@ export class App {
   start(): void {
     this.el('version').textContent = `v${this.d.version}`;
     this.buildSettingsForm();
+    this.applySkin(this.d.prefs.get('pourlab-skin') === 'cyber' ? 'cyber' : 'lab', false);
     this.applyHelp();
     this.bindControls();
     this.editor = new ShapeEditor(
@@ -148,6 +158,42 @@ export class App {
       this.loopStarted = true;
       this.d.schedule(() => this.tick());
     }
+  }
+
+  // ------------------------------------------------------------ look and sound
+
+  /** Switch between the clean lab look and the cyber neon look (remembered per viewer). */
+  applySkin(skin: 'lab' | 'cyber', remember = true): void {
+    const root = this.d.doc.documentElement;
+    if (skin === 'cyber') root.setAttribute('data-skin', 'cyber');
+    else root.removeAttribute('data-skin');
+    this.el<HTMLSelectElement>('skin').value = skin;
+    if (remember) this.d.prefs.set('pourlab-skin', skin);
+    this.render();
+    this.updatePanels();
+    this.editor?.render();
+  }
+
+  async toggleSound(): Promise<void> {
+    const b = this.el<HTMLButtonElement>('soundToggle');
+    if (this.sound.enabled) {
+      await this.sound.disable();
+    } else if (!(await this.sound.enable())) {
+      this.setStatus('Sound is not supported in this browser.');
+      return;
+    }
+    b.textContent = this.sound.enabled ? 'Sound: on' : 'Sound: off';
+    b.setAttribute('aria-pressed', String(this.sound.enabled));
+  }
+
+  /** Pouring noise follows the measured discharge rate (mL per simulated second). */
+  private updatePourSound(d: Diagnostics): void {
+    const dt = d.time - this.lastPour.time;
+    let level = 0;
+    if (this.running && this.lastPour.time >= 0 && dt > 1e-6)
+      level = pourIntensity(((d.volumeDischarged - this.lastPour.volume) * 1e6) / dt);
+    if (dt > 1e-6 || !this.running) this.sound.setPourIntensity(level);
+    this.lastPour = { time: d.time, volume: d.volumeDischarged };
   }
 
   // ------------------------------------------------------------ settings
@@ -347,6 +393,11 @@ export class App {
       this.post({ type: 'step' });
     });
     on('reset', 'click', () => this.applySettings(this.settings, false));
+    on('skin', 'change', (e) =>
+      this.applySkin((e.target as HTMLSelectElement).value === 'cyber' ? 'cyber' : 'lab'),
+    );
+    on('soundToggle', 'click', () => void this.toggleSound());
+    on('volume', 'input', (e) => this.sound.setVolume(Number((e.target as HTMLInputElement).value) / 100));
     on('tiltSlider', 'input', (e) => {
       const deg = Number((e.target as HTMLInputElement).value);
       this.el('tiltValue').textContent = `${deg} deg`;
@@ -458,6 +509,7 @@ export class App {
     if (r && this.finished) return;
     this.running = r;
     this.scrubIndex = -1;
+    if (!r) this.sound.setPourIntensity(0);
     this.post({ type: r ? 'play' : 'pause' });
     const b = this.el<HTMLButtonElement>('play');
     b.textContent = r ? 'Pause' : 'Play';
@@ -497,6 +549,7 @@ export class App {
         if (m.metrics) this.metrics = m.metrics;
         if (this.running) this.storeFrame(m.snapshot);
         this.finished = m.finished;
+        this.updatePourSound(m.diagnostics);
         if (this.running && !m.running) {
           this.setRunning(false);
           if (m.finished) this.onFinished();
@@ -586,6 +639,7 @@ export class App {
       dim: v('--dim', '#c9ccd1'),
       arrow: v('--arrow', '#444a52'),
       origins: [v('--origin-0', '#0072b2'), v('--origin-1', '#009e73'), v('--origin-2', '#d55e00')],
+      glow: this.d.doc.documentElement.getAttribute('data-skin') === 'cyber',
     };
   }
 

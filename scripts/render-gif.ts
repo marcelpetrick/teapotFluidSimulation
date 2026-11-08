@@ -4,15 +4,20 @@
 // Render a looping showcase GIF of a preset from the production build. Frames are captured
 // deterministically with single simulation steps (4 steps = 1/15 s of simulated time per frame,
 // played back at 15 fps = real time), then assembled with ffmpeg using an optimised palette.
-// Usage: npm run build && npx tsx scripts/render-gif.ts <presetId> <out.gif> [maxSeconds] [width]
+// Usage: npm run build && npx tsx scripts/render-gif.ts <presetId> <out.gif> [maxSeconds] [width] [lab|cyber]
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 
-const [preset = 'teapot-gentle', out = 'media/pourlab.gif', maxSecondsArg = '9', widthArg = '960'] =
-  process.argv.slice(2);
+const [
+  preset = 'teapot-gentle',
+  out = 'media/pourlab.gif',
+  maxSecondsArg = '9',
+  widthArg = '960',
+  skin = 'lab',
+] = process.argv.slice(2);
 const maxSeconds = Number(maxSecondsArg);
 const width = Number(widthArg);
 const dir = mkdtempSync(join(tmpdir(), 'pourlab-gif-'));
@@ -25,6 +30,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   await page.goto(`http://127.0.0.1:4176/teapotFluidSimulation/?preset=${preset}`);
   await page.waitForFunction(() => document.getElementById('status')?.textContent?.startsWith('Ready'));
+  await page.locator('#skin').selectOption(skin);
   await page.locator('#prompt').evaluate((e) => ((e as HTMLElement).hidden = true));
   const clip = await page.evaluate(`(() => {
     const a = document.querySelector('.stage canvas').getBoundingClientRect();

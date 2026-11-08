@@ -34,6 +34,29 @@ const app = new App({
   copy: (t) => navigator.clipboard.writeText(t),
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   version: __APP_VERSION__,
+  audio: () => {
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    return Ctor ? new Ctor() : null;
+  },
+  // Storage can be unavailable (private mode, blocked site data): fail silently.
+  prefs: {
+    get: (k) => {
+      try {
+        return window.localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    },
+    set: (k, v) => {
+      try {
+        window.localStorage.setItem(k, v);
+      } catch {
+        /* preference not persisted */
+      }
+    },
+  },
 });
 app.start();
 (window as unknown as { pourlab: App }).pourlab = app;

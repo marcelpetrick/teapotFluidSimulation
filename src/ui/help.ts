@@ -6,6 +6,10 @@
 
 /** Help for static page controls, by element id. */
 export const CONTROL_HELP: Record<string, string> = {
+  skin: 'Switch the look: clean lab, or cyber neon with glass panels and glowing liquid. Remembered in this browser.',
+  soundToggle:
+    'Turn the generated soundscape on or off: a calm space ambience, plus a pouring sound whose loudness follows how much tea is flowing.',
+  volume: 'Overall sound volume.',
   pour: 'Start the experiment: the pot tilts, liquid leaves through the spout or lip, then the pot returns upright near the target volume.',
   play: 'Play or pause the simulation (keyboard: Space). Pausing keeps the state; nothing is lost.',
   step: 'Advance exactly 1/60 s of simulated time, then pause. Useful to inspect the flow frame by frame.',

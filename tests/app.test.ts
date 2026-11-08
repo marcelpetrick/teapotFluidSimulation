@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App, type AppDeps, type WorkerLike } from '../src/ui/app';
 import { SimulationHost, type FromWorker, type ToWorker } from '../src/worker/host';
-import { fakeCtx } from './helpers';
+import { fakeAudio, fakeCtx } from './helpers';
+import type { AudioCtxLike } from '../src/audio/soundscape';
 
 /** In-process worker: the real SimulationHost, asynchronous delivery like postMessage. */
 class FakeWorker implements WorkerLike {
@@ -36,7 +37,14 @@ const body = html
   .slice(html.indexOf('<body>') + 6, html.indexOf('</body>'))
   .replace(/<script[\s\S]*?<\/script>/g, '');
 
-function setup(search = '?preset=tank-tilt&duration=2', ctxOk = true) {
+function setup(
+  search = '?preset=tank-tilt&duration=2',
+  ctxOk = true,
+  audioOk = true,
+  stored: [string, string][] = [],
+) {
+  const audio = fakeAudio();
+  const prefs = new Map<string, string>(stored);
   document.body.innerHTML = body;
   const worker = new FakeWorker();
   let frameCb: ((t: number) => void) | null = null;
@@ -60,6 +68,8 @@ function setup(search = '?preset=tank-tilt&duration=2', ctxOk = true) {
     },
     reducedMotion: true,
     version: '1.2.3',
+    audio: () => (audioOk ? (audio as unknown as AudioCtxLike) : null),
+    prefs: { get: (k) => prefs.get(k) ?? null, set: (k, v) => void prefs.set(k, v) },
   };
   const app = new App(deps);
   app.start();
@@ -69,7 +79,7 @@ function setup(search = '?preset=tank-tilt&duration=2', ctxOk = true) {
     void ms;
     await worker.queue;
   };
-  return { app, worker, tick, downloads, replaced, copied, settle: () => worker.queue };
+  return { app, worker, tick, downloads, replaced, copied, audio, prefs, settle: () => worker.queue };
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -269,6 +279,57 @@ describe('App (integration with the real simulation host)', () => {
     expect(t.replaced.at(-1)).toMatch(/vessel=custom/);
     expect(t.replaced.at(-1)).toMatch(/shape=/);
     expect(t.app.editor!.pts.length).toBeGreaterThan(3);
+  });
+
+  it('switches between the lab and cyber looks and remembers the choice', async () => {
+    const t = setup('?preset=tank-rest', true, true, [['pourlab-skin', 'cyber']]);
+    await t.settle();
+    expect(document.documentElement.getAttribute('data-skin')).toBe('cyber');
+    expect(t.app.theme().glow).toBe(true);
+    const skin = $('skin') as HTMLSelectElement;
+    skin.value = 'lab';
+    skin.dispatchEvent(new Event('change'));
+    expect(document.documentElement.hasAttribute('data-skin')).toBe(false);
+    expect(t.prefs.get('pourlab-skin')).toBe('lab');
+    expect(t.app.theme().glow).toBe(false);
+    skin.value = 'cyber';
+    skin.dispatchEvent(new Event('change'));
+    expect(t.prefs.get('pourlab-skin')).toBe('cyber');
+    document.documentElement.removeAttribute('data-skin');
+  });
+
+  it('sound toggles on and off, volume applies, and the pour sound follows the discharge', async () => {
+    const t = setup('?preset=teapot-gentle&duration=4');
+    await t.settle();
+    $('soundToggle').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect($('soundToggle').textContent).toBe('Sound: on');
+    expect($('soundToggle').getAttribute('aria-pressed')).toBe('true');
+    const vol = $('volume') as HTMLInputElement;
+    vol.value = '30';
+    vol.dispatchEvent(new Event('input'));
+    expect(t.app.sound.volume).toBeCloseTo(0.3);
+    $('pour').click();
+    let maxLevel = 0;
+    for (let k = 0; k < 40 && !t.app.finished; k++) {
+      await t.tick(100);
+      maxLevel = Math.max(maxLevel, t.app.sound.intensity);
+    }
+    expect(maxLevel).toBeGreaterThan(0.3); // audible while pouring
+    $('play').click(); // pausing silences the pour
+    expect(t.app.sound.intensity).toBe(0);
+    $('soundToggle').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect($('soundToggle').textContent).toBe('Sound: off');
+  });
+
+  it('explains when Web Audio is unavailable', async () => {
+    const t = setup('?preset=tank-rest', true, false);
+    await t.settle();
+    $('soundToggle').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect($('status').textContent).toMatch(/not supported/);
+    expect($('soundToggle').textContent).toBe('Sound: off');
   });
 
   it('copy failure falls back to showing the link', async () => {

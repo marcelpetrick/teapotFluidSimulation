@@ -31,6 +31,7 @@ export type Ctx2D = Pick<
   lineCap: CanvasLineCap;
   lineJoin: CanvasLineJoin;
   globalAlpha: number;
+  globalCompositeOperation: GlobalCompositeOperation;
   font: string;
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
@@ -45,6 +46,8 @@ export interface Theme {
   origins: string[];
   dim: string;
   arrow: string;
+  /** Cyber skin: draw liquid additively so dense regions glow. */
+  glow?: boolean;
 }
 
 export type ColourMode = 'origin' | 'poured-map' | 'speed' | 'temperature';
@@ -167,40 +170,46 @@ export function drawParcels(
   const r = Math.max(1.2, info.h * v.scale * (opts.markers ? 0.42 : 0.3));
   const pos = snap.positions;
   const maxY = info.config.domainHeight;
-  ctx.save();
-  for (let p = 0; p < snap.count; p++) {
-    const st = snap.status[p];
-    const y = pos[2 * p + 1];
-    if (st !== STATUS_IN_POT && st !== STATUS_DISCHARGED) continue;
-    if (y < -0.05 || y > maxY * 1.2) continue;
-    const k = info.origin[p];
-    let colour: string;
+  const colourOf = (p: number, st: number, k: number): string => {
     switch (opts.mode) {
       case 'speed':
-        colour = rampColour(snap.speed[p] / 0.6);
-        break;
+        return rampColour(snap.speed[p] / 0.6);
       case 'temperature': {
         const T = snap.temperature ? snap.temperature[p] : tempRange[0];
         const mid = 0.5 * (tempRange[0] + tempRange[1]);
         const half = Math.max(0.5, 0.5 * (tempRange[1] - tempRange[0]));
-        colour = temperatureColour((T - mid) / half);
-        break;
+        return temperatureColour((T - mid) / half);
       }
       case 'poured-map':
-        colour = st === STATUS_DISCHARGED ? theme.origins[k % theme.origins.length] : theme.dim;
-        break;
+        return st === STATUS_DISCHARGED ? theme.origins[k % theme.origins.length] : theme.dim;
       default:
-        colour =
-          opts.highlight !== undefined && opts.highlight >= 0 && opts.highlight !== k
-            ? theme.dim
-            : theme.origins[k % theme.origins.length];
+        return opts.highlight !== undefined && opts.highlight >= 0 && opts.highlight !== k
+          ? theme.dim
+          : theme.origins[k % theme.origins.length];
     }
-    ctx.fillStyle = colour;
-    const [sx, sy] = toScreen(v, pos[2 * p], y);
-    if (opts.markers && opts.mode === 'origin') drawMarker(ctx, k, sx, sy, r);
-    else ctx.fillRect(sx - r, sy - r, 2 * r, 2 * r);
+  };
+  // Cyber skin: a faint additive halo first (glow), then the parcels in their true colours on
+  // top, so colours always match the legend (plain additive blending would saturate them).
+  for (const halo of theme.glow ? [true, false] : [false]) {
+    ctx.save();
+    if (halo) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.14;
+    }
+    const rr = halo ? r * 2.6 : r;
+    for (let p = 0; p < snap.count; p++) {
+      const st = snap.status[p];
+      const y = pos[2 * p + 1];
+      if (st !== STATUS_IN_POT && st !== STATUS_DISCHARGED) continue;
+      if (y < -0.05 || y > maxY * 1.2) continue;
+      const k = info.origin[p];
+      ctx.fillStyle = colourOf(p, st, k);
+      const [sx, sy] = toScreen(v, pos[2 * p], y);
+      if (!halo && opts.markers && opts.mode === 'origin') drawMarker(ctx, k, sx, sy, rr);
+      else ctx.fillRect(sx - rr, sy - rr, 2 * rr, 2 * rr);
+    }
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 export function drawPathlines(

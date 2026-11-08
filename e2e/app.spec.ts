@@ -74,6 +74,20 @@ test('draw a pot in the editor, then tilt it by hand until liquid pours', async 
   expect(rec.manualInputs.at(-1).targetDeg).toBe(55);
 });
 
+test('cyber look is remembered across reloads and the soundscape switches on', async ({ page }) => {
+  await page.goto('./?preset=tank-rest');
+  await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });
+  await page.locator('#skin').selectOption('cyber');
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'cyber');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'cyber');
+  await expect(page.locator('#skin')).toHaveValue('cyber');
+  await page.locator('#soundToggle').click();
+  await expect(page.locator('#soundToggle')).toHaveText('Sound: on');
+  await page.locator('#soundToggle').click();
+  await expect(page.locator('#soundToggle')).toHaveText('Sound: off');
+});
+
 test('step, scrub, exports and view toggles work', async ({ page }) => {
   await page.goto('./?preset=tank-tilt&duration=2');
   await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });

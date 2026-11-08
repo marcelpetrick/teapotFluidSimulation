@@ -359,3 +359,113 @@ td:first-child {
 #tiltSlider {
   vertical-align: middle;
 }
+
+/* ---------------------------------------------------------------- Cyber neon skin
+   Switchable look (header "Look" control): deep-space background with a faint grid,
+   half-transparent glass panels, neon outlines and glow. Origin colours are validated for
+   colour-vision deficiencies on the dark surface (#3b7bff / #c47f00 / #d946ef). */
+:root[data-skin='cyber'] {
+  --surface: rgba(7, 11, 22, 0.55);
+  --panel: rgba(16, 24, 48, 0.55);
+  --ink: #e6f7ff;
+  --muted: #8fb3c9;
+  --grid: rgba(0, 229, 255, 0.16);
+  --wall: #7df9ff;
+  --dim: rgba(120, 150, 190, 0.28);
+  --arrow: #7df9ff;
+  --accent: #00e5ff;
+  --origin-0: #3b7bff;
+  --origin-1: #c47f00;
+  --origin-2: #d946ef;
+  --error: #ff7a9a;
+  --neon: #00e5ff;
+  --neon-2: #d946ef;
+  color-scheme: dark;
+}
+
+:root[data-skin='cyber'] body {
+  background-color: #04060d;
+  background-image:
+    radial-gradient(ellipse at 20% -10%, rgba(0, 229, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse at 90% 110%, rgba(217, 70, 239, 0.16), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(0, 229, 255, 0.05) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, rgba(0, 229, 255, 0.05) 0 1px, transparent 1px 40px);
+  background-attachment: fixed;
+  letter-spacing: 0.01em;
+}
+
+:root[data-skin='cyber'] h1 {
+  color: var(--neon);
+  text-shadow:
+    0 0 8px rgba(0, 229, 255, 0.7),
+    0 0 22px rgba(0, 229, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+:root[data-skin='cyber'] h2,
+:root[data-skin='cyber'] h3 {
+  color: var(--neon);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+:root[data-skin='cyber'] .canvas-wrap,
+:root[data-skin='cyber'] .settings,
+:root[data-skin='cyber'] .results canvas,
+:root[data-skin='cyber'] #shapeCanvas {
+  background: var(--surface);
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  box-shadow:
+    0 0 18px rgba(0, 229, 255, 0.15),
+    inset 0 0 24px rgba(0, 229, 255, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+:root[data-skin='cyber'] button,
+:root[data-skin='cyber'] select,
+:root[data-skin='cyber'] input[type='number'] {
+  background: rgba(10, 20, 40, 0.6);
+  border-color: rgba(0, 229, 255, 0.5);
+  color: var(--ink);
+}
+
+:root[data-skin='cyber'] button:hover {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.55);
+}
+
+:root[data-skin='cyber'] button.primary {
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.85), rgba(217, 70, 239, 0.85));
+  border-color: transparent;
+  color: #02040a;
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.55);
+}
+
+:root[data-skin='cyber'] .prompt,
+:root[data-skin='cyber'] .tooltip {
+  background: rgba(7, 11, 22, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+}
+
+:root[data-skin='cyber'] a {
+  color: var(--neon);
+}
+
+.top-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#soundToggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin='cyber'] body {
+    background-attachment: scroll;
+  }
+}

@@ -79,6 +79,19 @@ describe('scene drawing', () => {
         expect(c.calls.length).toBeGreaterThan(info.n);
       }
     const withT = { ...snapshot, temperature: new Float32Array(info.n).fill(340) };
+    const gc0 = fakeCtx();
+    drawParcels(
+      gc0,
+      vp,
+      info,
+      snapshot,
+      { mode: 'origin', pathlines: false, arrows: false, markers: false },
+      { ...theme, glow: true },
+      [0, 1],
+    );
+    // Halo pass (additive) plus a true-colour pass: two fills per visible parcel.
+    expect(gc0.globalCompositeOperation).toBe('lighter');
+    expect(gc0.calls.filter((c) => c === 'fillRect').length).toBeGreaterThan(1.5 * info.n);
     const hc = fakeCtx();
     const styles: string[] = [];
     Object.defineProperty(hc, 'fillStyle', { set: (v: string) => styles.push(v), get: () => '' });
