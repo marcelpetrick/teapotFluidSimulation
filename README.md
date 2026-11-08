@@ -14,6 +14,8 @@ colour of the layer it started in.
 
 **▶ Try it: <https://marcelpetrick.github.io/teapotFluidSimulation/>** — no install, no account.
 
+![Cyber look: German glass teapot pouring from its top layer](media/pourlab-v0.6.0-cyber-glass-teapot.gif)
+
 | Teapot with a low spout                                                                                      | German glass teapot (lip at the top)                                       |
 | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | ![Spout teapot pouring](media/pourlab-v0.5.0-spout-teapot.gif)                                               | ![German glass teapot pouring](media/pourlab-v0.5.0-glass-teapot.gif)      |
@@ -27,6 +29,8 @@ colour of the layer it started in.
   scheme and **thermal effects** (warm-over-cool layering, cooling convection).
 - Read the answer: composition of the poured tea, over-representation per layer, a map of where the
   poured tea started, mixing scores, and how the rest was rearranged.
+- Switch the **look** between a clean lab view and **cyber neon** (glass panels, glowing liquid).
+- Turn on **sound**: a generated space ambience plus a pouring sound that follows the flow.
 - **Share** a link that reproduces the exact experiment; export **JSON**, **CSV** and **PNG**.
 
 Every control has a tooltip that explains what it does. Model limits are always shown next to the
