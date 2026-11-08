@@ -50,7 +50,10 @@ export class Soundscape {
       if (!this.ctx) return false;
     }
     if (!this.started) this.build();
-    if (this.ctx.state === 'suspended') await this.ctx.resume();
+    // Without an audio output device (e.g. headless CI) resume() may never settle: wait briefly,
+    // then carry on - audio starts as soon as the browser can play it.
+    if (this.ctx.state === 'suspended')
+      await Promise.race([this.ctx.resume(), new Promise<void>((r) => setTimeout(r, 300))]);
     this.enabled = true;
     this.ramp(this.master!, this.volume * 0.5, 1.5);
     return true;

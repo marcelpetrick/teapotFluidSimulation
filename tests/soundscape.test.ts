@@ -38,6 +38,14 @@ describe('Soundscape', () => {
     expect(a.log.filter((l) => l.startsWith('start')).length).toBe(starts);
   });
 
+  it('does not hang when the audio device never starts (headless browsers)', async () => {
+    const a = fakeAudio();
+    a.resume = () => new Promise<void>(() => {});
+    const s = new Soundscape(() => a as unknown as AudioCtxLike);
+    expect(await s.enable()).toBe(true);
+    expect(s.enabled).toBe(true);
+  });
+
   it('reports missing Web Audio support', async () => {
     const s = new Soundscape(() => null);
     expect(await s.enable()).toBe(false);
