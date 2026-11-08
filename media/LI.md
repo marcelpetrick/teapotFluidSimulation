@@ -7,3 +7,5 @@ The URL opens directly the simulation, have fun.
 https://marcelpetrick.github.io/teapotFluidSimulation/
 
 I am not 100% done, because after finishing this milestone, I remembered some other similar experiments. Which won't change the world, but will satisfy my curiosity.
+
+And to answer the initial question: it looks like pouring 1/3 of the content is not sufficient as a replacement for good stirring.
