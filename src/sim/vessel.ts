@@ -55,6 +55,8 @@ export interface SdfCache {
   nx: number;
   ny: number;
   exact: number;
+  /** Lower bound of the distance for any point outside the table (walls are >= pad inside it). */
+  outside: number;
   values: Float32Array;
 }
 
@@ -81,7 +83,7 @@ function buildCache(v: Vessel, step: number): SdfCache {
   for (let j = 0; j < ny; j++)
     for (let i = 0; i < nx; i++) values[i + j * nx] = exactSdf(v, x0 + i * step, y0 + j * step);
   // Bilinear interpolation of a 1-Lipschitz function errs by at most ~step; 3 steps is safe.
-  return { x0, y0, step, nx, ny, exact: 3 * step, values };
+  return { x0, y0, step, nx, ny, exact: 3 * step, outside: pad - v.halfWall, values };
 }
 
 function arc(cx: number, cy: number, r: number, a0: number, a1: number, n: number): [number, number][] {
@@ -280,6 +282,10 @@ export function vesselSdf(v: Vessel, x: number, y: number): number {
         (1 - fx) * fy * c.values[k + c.nx] +
         fx * fy * c.values[k + c.nx + 1];
       if (val > c.exact) return val;
+    } else if (c.outside > c.exact) {
+      // Outside the table every wall is at least `pad` away: a cheap, valid lower bound that is
+      // far above every threshold the solver compares against.
+      return c.outside;
     }
   }
   return exactSdf(v, x, y);

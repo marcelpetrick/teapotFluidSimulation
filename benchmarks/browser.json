@@ -1,19 +1,19 @@
 {
- "generatedAt": "2026-11-08T17:33:45.869Z",
+ "generatedAt": "2026-11-08T18:24:42.247Z",
  "results": [
   {
    "browser": "chromium",
    "version": "158.0.8127.18",
-   "rafFps": 60.162655823034775,
-   "simFramesPerSecond": 44.99700020005371,
-   "simPerWall": 0.7180076883774009
+   "rafFps": 60.02161443178984,
+   "simFramesPerSecond": 48.88186881702552,
+   "simPerWall": 0.9537065339437266
   },
   {
    "browser": "firefox",
    "version": "159.0",
-   "rafFps": 60.09655402030964,
-   "simFramesPerSecond": 47.27817546196105,
-   "simPerWall": 0.47444647910770643
+   "rafFps": 60.086551264980024,
+   "simFramesPerSecond": 49.4340878828229,
+   "simPerWall": 0.6755776632309259
   }
  ]
 }

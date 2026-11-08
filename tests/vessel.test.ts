@@ -121,9 +121,18 @@ describe('vessel geometry', () => {
       const y = c.y0 - 0.01 + rng() * (c.ny * c.step + 0.02);
       const exact = exactSdf(v, x, y);
       const fast = vesselSdf(v, x, y);
+      const gx = (x - c.x0) / c.step;
+      const gy = (y - c.y0) / c.step;
+      const inTable = gx >= 0 && gy >= 0 && gx < c.nx - 1 && gy < c.ny - 1;
       if (exact < c.exact)
-        expect(fast).toBe(exact); // exact near walls (and outside the table)
-      else expect(Math.abs(fast - exact)).toBeLessThan(c.step); // approximate only far away
+        expect(fast).toBe(exact); // always exact near walls
+      else if (inTable)
+        expect(Math.abs(fast - exact)).toBeLessThan(c.step); // approximate far away
+      else {
+        // Outside the table: a valid lower bound, still far above every solver threshold.
+        expect(fast).toBeLessThanOrEqual(exact);
+        expect(fast).toBeGreaterThan(c.exact);
+      }
       expect(Math.sign(fast)).toBe(Math.sign(exact));
     }
   });

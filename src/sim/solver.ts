@@ -98,6 +98,7 @@ export class Simulation {
   private uTmp: Float64Array;
   private vTmp: Float64Array;
   private validTmp: Uint8Array;
+  private newlyBuf: Int32Array;
   readonly pressure: Float64Array;
   private rhs: Float64Array;
   /** Position-only density-correction velocity (never written into parcel velocities). */
@@ -201,6 +202,7 @@ export class Simulation {
     this.vValid = new Uint8Array(nv);
     this.vTmp = new Float64Array(nv);
     this.validTmp = new Uint8Array(Math.max(nu, nv));
+    this.newlyBuf = new Int32Array(Math.max(nu, nv));
     this.pressure = new Float64Array(nc);
     this.rhs = new Float64Array(nc);
     this.uCorr = new Float64Array(nu);
@@ -666,39 +668,44 @@ export class Simulation {
 
   /** Explicit viscous diffusion of face velocities; zero-gradient at air and solid neighbours (free-slip). */
   private applyViscosity(dt: number): void {
-    const { nx, ny, h, cfg } = this;
+    const { nx, ny, h, cfg, cell } = this;
     const k = (cfg.kinematicViscosity * dt) / (h * h);
-    const lap = (
-      f: Float64Array,
-      tmp: Float64Array,
-      w: number,
-      hgt: number,
-      isFluidFace: (i: number, j: number) => boolean,
-    ) => {
+    // Liquid faces: not solid and next to a liquid cell. uValid/vValid serve as scratch here;
+    // extrapolate() recomputes them after the projection.
+    const um = this.uValid;
+    const vm = this.vValid;
+    for (let j = 0; j < ny; j++)
+      for (let i = 0; i <= nx; i++) {
+        const f = i + j * (nx + 1);
+        um[f] =
+          !this.uSolid[f] && (cell[i - 1 + j * nx] === CELL_FLUID || cell[i + j * nx] === CELL_FLUID) ? 1 : 0;
+      }
+    for (let j = 0; j <= ny; j++)
+      for (let i = 0; i < nx; i++) {
+        const f = i + j * nx;
+        vm[f] =
+          !this.vSolid[f] && (cell[i + (j - 1) * nx] === CELL_FLUID || cell[i + j * nx] === CELL_FLUID)
+            ? 1
+            : 0;
+      }
+    const lap = (f: Float64Array, tmp: Float64Array, mask: Uint8Array, w: number, hgt: number) => {
       tmp.set(f);
       for (let j = 0; j < hgt; j++)
         for (let i = 0; i < w; i++) {
-          if (!isFluidFace(i, j)) continue;
           const c = i + j * w;
+          if (!mask[c]) continue;
           const fc = f[c];
           let s = 0;
-          s += i > 0 && isFluidFace(i - 1, j) ? f[c - 1] - fc : 0;
-          s += i < w - 1 && isFluidFace(i + 1, j) ? f[c + 1] - fc : 0;
-          s += j > 0 && isFluidFace(i, j - 1) ? f[c - w] - fc : 0;
-          s += j < hgt - 1 && isFluidFace(i, j + 1) ? f[c + w] - fc : 0;
+          if (i > 0 && mask[c - 1]) s += f[c - 1] - fc;
+          if (i < w - 1 && mask[c + 1]) s += f[c + 1] - fc;
+          if (j > 0 && mask[c - w]) s += f[c - w] - fc;
+          if (j < hgt - 1 && mask[c + w]) s += f[c + w] - fc;
           tmp[c] = fc + k * s;
         }
       f.set(tmp);
     };
-    const cell = this.cell;
-    lap(this.u, this.uTmp, nx + 1, ny, (i, j) => {
-      if (this.uSolid[i + j * (nx + 1)]) return false;
-      return cell[i - 1 + j * nx] === CELL_FLUID || cell[i + j * nx] === CELL_FLUID;
-    });
-    lap(this.v, this.vTmp, nx, ny + 1, (i, j) => {
-      if (this.vSolid[i + j * nx]) return false;
-      return cell[i + (j - 1) * nx] === CELL_FLUID || cell[i + j * nx] === CELL_FLUID;
-    });
+    lap(this.u, this.uTmp, um, nx + 1, ny);
+    lap(this.v, this.vTmp, vm, nx, ny + 1);
   }
 
   /** Solid faces carry the normal component of the rigid wall velocity omega x (x - pivot). */
@@ -833,7 +840,8 @@ export class Simulation {
     vm.set(valid);
     for (let L = 0; L < layers; L++) {
       tmp.set(f);
-      const newly: number[] = [];
+      const newly = this.newlyBuf;
+      let count = 0;
       for (let j = 0; j < hgt; j++)
         for (let i = 0; i < w; i++) {
           const c = i + j * w;
@@ -858,12 +866,12 @@ export class Simulation {
           }
           if (k > 0) {
             tmp[c] = s / k;
-            newly.push(c);
+            newly[count++] = c;
           }
         }
-      if (newly.length === 0) break;
+      if (count === 0) break;
       f.set(tmp);
-      for (const c of newly) vm[c] = 1;
+      for (let q = 0; q < count; q++) vm[newly[q]] = 1;
     }
   }
 

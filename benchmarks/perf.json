@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-08T18:08:27.422Z",
+ "generatedAt": "2026-11-08T18:24:27.429Z",
  "node": "v24.20.0",
  "cpu": "12th Gen Intel(R) Core(TM) i9-12900H",
  "rows": [
@@ -8,8 +8,8 @@
    "parcels": 5259,
    "grid": "92x100",
    "simulatedSeconds": 4,
-   "wallSeconds": 3.528937464,
-   "simPerWall": 1.1334856570300504,
+   "wallSeconds": 3.318607021,
+   "simPerWall": 1.2053249977138525,
    "steps": 1087
   },
   {
@@ -17,8 +17,8 @@
    "parcels": 11174,
    "grid": "133x146",
    "simulatedSeconds": 4,
-   "wallSeconds": 10.365050406999998,
-   "simPerWall": 0.3859122573392036,
+   "wallSeconds": 9.639537883000001,
+   "simPerWall": 0.4149576513469883,
    "steps": 1446
   },
   {
@@ -26,8 +26,8 @@
    "parcels": 25357,
    "grid": "199x218",
    "simulatedSeconds": 4,
-   "wallSeconds": 36.745205612999996,
-   "simPerWall": 0.10885773894227033,
+   "wallSeconds": 34.271342497,
+   "simPerWall": 0.11671559117796879,
    "steps": 2036
   },
   {
@@ -35,8 +35,8 @@
    "parcels": 45098,
    "grid": "265x291",
    "simulatedSeconds": 4,
-   "wallSeconds": 98.39976042499998,
-   "simPerWall": 0.04065050547606555,
+   "wallSeconds": 91.613811473,
+   "simPerWall": 0.0436615389719798,
    "steps": 2719
   }
  ]

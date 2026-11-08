@@ -73,10 +73,27 @@ it matches PIC/FLIP within noise at higher bookkeeping cost; it stays available 
 
 ## Performance
 
-Solver throughput, simulated seconds per wall-clock second (`benchmarks/perf.json`, default pour, Node):
-see the file for the current numbers; the browser figures in `benchmarks/browser.json` include worker
-messaging and metrics. At the default 44 cells the simulation runs close to real time; 96 and 128 cells
-run slower than real time, and the UI states the achieved fraction instead of taking larger steps.
+Solver throughput, default 400 mL pour (`benchmarks/perf.json`, Node, isolated):
+
+| Cells across pot | Parcels | Simulated s per wall-clock s |
+| ---------------- | ------- | ---------------------------- |
+| 44 (default)     | 5 259   | 1.21 (faster than real time) |
+| 64               | 11 174  | 0.41                         |
+| 96               | 25 357  | 0.12                         |
+| 128              | ~45 000 | 0.04                         |
+
+Browser, default preset (`benchmarks/browser.json`): animation at 60 fps; fresh simulation frames 49
+per second in both engines; simulated time at 0.95× (Chromium) and 0.68× (Firefox) real time. When the
+browser cannot keep up, simulated time slows and the status line says so; the step never grows.
+
+Profile (`npx tsx benchmarks/profile.ts teapot-gentle 44 3`): advection 25 %, pressure projection 21 %,
+density-correction solve 17 %, cell classification 10 %, transfers 13 %. Optimisations applied so far
+keep results bit-for-bit identical (verified on the reference pour): a tabulated far-field wall distance
+with an exact near-wall fallback, allocation-free inner loops, and inlined viscosity masks — together
+about 1.4× since the first release. Warm-starting the pressure solves was tried and **rejected**: only
+2–6 % faster because the free surface changes the system every substep, while giving up bit-identical
+results. The next real step would be a multigrid pressure solver or a WebAssembly/WebGPU backend
+(vision §18.5), both deliberately deferred until profiling justifies them.
 
 ## Not done (needs the owner or a later version)
 
