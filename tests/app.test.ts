@@ -83,7 +83,8 @@ describe('App (integration with the real simulation host)', () => {
     expect($('version').textContent).toBe('v1.2.3');
     expect($('status').textContent).toMatch(/Ready: \d+ parcels/);
     expect($('status').textContent).toMatch(/Reduced motion/);
-    expect($('legend').children).toHaveLength(3);
+    expect($('legend').children).toHaveLength(4);
+    expect($('legend').textContent).toMatch(/hollow ring/);
     expect($('limits').children.length).toBeGreaterThan(5);
     expect($('pour').textContent).toBe('Tilt and return');
     expect(($('preset') as HTMLSelectElement).value).toBe('tank-tilt');
@@ -230,6 +231,30 @@ describe('App (integration with the real simulation host)', () => {
     expect($('status').textContent).toMatch(/worker failed/);
     t.app.render();
     expect(() => t.app.el('does-not-exist')).toThrow(/Missing element/);
+  });
+
+  it('manual tilt mode shows the slider and sends tilt requests; drawn pots apply from the editor', async () => {
+    const t = setup('?preset=teapot-gentle&control=manual&duration=3');
+    await t.settle();
+    expect($('tiltBox').hidden).toBe(false);
+    expect($('pour').textContent).toBe('Start (tilt by hand)');
+    $('pour').click();
+    const slider = $('tiltSlider') as HTMLInputElement;
+    slider.value = '40';
+    slider.dispatchEvent(new Event('input'));
+    expect($('tiltValue').textContent).toBe('40 deg');
+    expect(t.worker.sent.some((m) => m.type === 'tilt' && m.angleDeg === 40)).toBe(true);
+    for (let k = 0; k < 15; k++) await t.tick(100);
+    expect(t.app.diagnostics!.angleDeg).toBeGreaterThan(20);
+    // Shape editor: switch to the bowl template and use it.
+    $('shape-bowl').click();
+    $('shapeUse').click();
+    await t.settle();
+    expect(t.app.settings.vessel).toBe('custom');
+    expect(t.app.info?.config.vessel.kind).toBe('custom');
+    expect(t.replaced.at(-1)).toMatch(/vessel=custom/);
+    expect(t.replaced.at(-1)).toMatch(/shape=/);
+    expect(t.app.editor!.pts.length).toBeGreaterThan(3);
   });
 
   it('copy failure falls back to showing the link', async () => {

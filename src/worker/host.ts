@@ -17,6 +17,7 @@ export type ToWorker =
   | { type: 'pause' }
   | { type: 'step' }
   | { type: 'speed'; value: number }
+  | { type: 'tilt'; angleDeg: number }
   | { type: 'export' };
 
 export interface StaticInfo {
@@ -129,6 +130,9 @@ export class SimulationHost {
         return [];
       case 'pause':
         this.running = false;
+        return [];
+      case 'tilt':
+        s.setTiltTarget(msg.angleDeg);
         return [];
       case 'speed':
         this.speed = Math.max(0.05, Math.min(4, msg.value));

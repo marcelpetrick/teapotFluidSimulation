@@ -9,7 +9,12 @@ import {
   PRESETS,
   QUALITY_LADDER,
   configFromSettings,
+  parseShape,
   presetById,
+  referenceFillHeight,
+  shapeToString,
+  fitFillToVessel,
+  vesselFromProfile,
   settingsFromQuery,
   settingsToQuery,
   validateSettings,
@@ -32,6 +37,7 @@ import {
   type Theme,
 } from '../render/scene';
 import { chartBox, drawBiasChart, drawBinsChart, drawTimeSeries } from '../render/charts';
+import { ShapeEditor } from './shapeEditor';
 
 export interface WorkerLike {
   postMessage(msg: ToWorker): void;
@@ -117,6 +123,22 @@ export class App {
     this.el('version').textContent = `v${this.d.version}`;
     this.buildSettingsForm();
     this.bindControls();
+    this.editor = new ShapeEditor(
+      this.d.doc,
+      {
+        getContext: this.d.getContext,
+        theme: () => this.theme(),
+        fillHeight: () => referenceFillHeight('custom') * (this.settings.fillMl / 1500),
+        onUse: (pts) => {
+          const wanted = { ...this.readForm(), vessel: 'custom' as const, shape: shapeToString(pts) };
+          const fit = fitFillToVessel(wanted, vesselFromProfile(pts));
+          if (this.applySettings(fit.settings) && fit.changed)
+            this.setStatus(`Fill lowered to ${fit.settings.fillMl} mL so the drawn pot does not overflow.`);
+        },
+      },
+      parseShape(this.settings.shape),
+    );
+    this.editor.bind();
     this.applySettings(this.settings, false);
     if (!this.loopStarted) {
       this.loopStarted = true;
@@ -173,6 +195,11 @@ export class App {
       ['glass', 'German glass teapot (cylinder, top lip)'],
       ['pitcher', 'Pitcher (rim lip)'],
       ['tank', 'Open tank (test)'],
+      ['custom', 'Drawn pot (shape editor)'],
+    ]);
+    this.selectField(f, 'control', 'Pouring', [
+      ['auto', 'Automatic pour to the target'],
+      ['manual', 'Tilt by hand (slider)'],
     ]);
     for (const k of [
       'fillMl',
@@ -191,6 +218,11 @@ export class App {
       'Resolution (cells across body)',
       QUALITY_LADDER.map((q) => [String(q), `${q}${q === 44 ? ' (fast)' : q === 96 ? ' (slow)' : ''}`]),
     );
+    this.selectField(n, 'ppc', 'Particles per cell', [
+      ['2', '4 per cell (fast)'],
+      ['3', '9 per cell'],
+      ['4', '16 per cell (slow)'],
+    ]);
     this.selectField(n, 'transfer', 'Transfer scheme', [
       ['flip', 'PIC/FLIP'],
       ['apic', 'APIC'],
@@ -246,8 +278,14 @@ export class App {
     this.pending = true;
     this.setStatus('Preparing experiment...');
     const pour = this.el<HTMLButtonElement>('pour');
-    pour.textContent =
-      cfg.motion.kind === 'pour'
+    const manual = cfg.motion.kind === 'manual';
+    this.el('tiltBox').hidden = !manual;
+    const slider = this.el<HTMLInputElement>('tiltSlider');
+    slider.value = '0';
+    this.el('tiltValue').textContent = '0 deg';
+    pour.textContent = manual
+      ? 'Start (tilt by hand)'
+      : cfg.motion.kind === 'pour'
         ? `Pour ${s.targetMl} mL`
         : cfg.motion.kind === 'tilt'
           ? 'Tilt and return'
@@ -285,6 +323,11 @@ export class App {
       this.post({ type: 'step' });
     });
     on('reset', 'click', () => this.applySettings(this.settings, false));
+    on('tiltSlider', 'input', (e) => {
+      const deg = Number((e.target as HTMLInputElement).value);
+      this.el('tiltValue').textContent = `${deg} deg`;
+      this.post({ type: 'tilt', angleDeg: deg });
+    });
     on('speed', 'change', (e) =>
       this.post({ type: 'speed', value: Number((e.target as HTMLSelectElement).value) }),
     );
@@ -336,6 +379,7 @@ export class App {
   }
 
   private wantCsv = false;
+  editor: ShapeEditor | null = null;
 
   /** Text for a hover position on a chart (x as a fraction of the plot width), or null. */
   chartTooltip(id: string, xFrac: number): string | null {
@@ -533,6 +577,11 @@ export class App {
       li.appendChild(this.d.doc.createTextNode(`started in ${n} third (${markers[k % 3]} marker)`));
       ul.appendChild(li);
     });
+    const li = this.d.doc.createElement('li');
+    li.className = 'legend-note';
+    li.textContent =
+      'Pathlines: trails of 30 sample parcels since the start. Solid dot = where the parcel is now; hollow ring = where it left through the lip. The dashed line is the lip section that counts poured liquid.';
+    ul.appendChild(li);
   }
 
   render(): void {
@@ -584,7 +633,8 @@ export class App {
       Math.max(info.config.thermal.bottomTemperature, info.config.thermal.topTemperature),
     ];
     drawParcels(ctx, vp, info, shown, opts, theme, tr);
-    if (opts.pathlines && this.metrics && !frame) drawPathlines(ctx, vp, info, this.metrics.pathlines, theme);
+    if (opts.pathlines && this.metrics && !frame)
+      drawPathlines(ctx, vp, info, this.metrics.pathlines, theme, shown.status);
     if (opts.arrows && !frame) drawArrows(ctx, vp, this.arrows, theme);
     const byOrigin = this.metrics ? this.metrics.composition.dischargedByOrigin : [0, 0, 0];
     const cap = Math.max(info.config.motion.targetVolume * 1.4, 500e-6);

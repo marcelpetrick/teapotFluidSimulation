@@ -46,6 +46,11 @@
               <option value="2">2x</option>
             </select>
           </label>
+          <label id="tiltBox" hidden
+            >Tilt by hand
+            <input id="tiltSlider" type="range" min="0" max="90" step="1" value="0" />
+            <span id="tiltValue">0 deg</span>
+          </label>
           <span id="status" class="status" role="status" aria-live="polite">Loading...</span>
         </div>
         <div class="canvas-wrap">
@@ -150,6 +155,30 @@
           ></label>
           <p id="presetPurpose" class="hint"></p>
           <div id="fields" class="fields"></div>
+          <details id="shapeBox">
+            <summary>Draw your own pot</summary>
+            <p class="hint">
+              Drag the points of the wall. Double-click a wall to add a point; select a point and press Delete
+              (or Remove point) to remove it. Draw from the back rim (left), round the bottom, to the pouring
+              lip (orange, right). The dashed line previews the fill level.
+            </p>
+            <div class="row">
+              <button type="button" id="shape-glass">Glass pot</button>
+              <button type="button" id="shape-pitcher">Pitcher</button>
+              <button type="button" id="shape-bowl">Bowl</button>
+              <button type="button" id="shape-jug">Tall jug</button>
+              <button type="button" id="shapeRemove">Remove point</button>
+            </div>
+            <canvas
+              id="shapeCanvas"
+              width="460"
+              height="350"
+              tabindex="0"
+              aria-label="Pot shape editor"
+            ></canvas>
+            <p id="shapeErrors" class="errors" role="alert"></p>
+            <button type="button" id="shapeUse" class="primary">Use this pot</button>
+          </details>
           <details>
             <summary>Numerics</summary>
             <div id="numFields" class="fields"></div>

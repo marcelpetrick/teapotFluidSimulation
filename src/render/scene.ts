@@ -209,6 +209,7 @@ export function drawPathlines(
   info: StaticInfo,
   paths: number[][],
   theme: Theme,
+  status?: Uint8Array,
 ): void {
   ctx.save();
   ctx.lineWidth = 1.5;
@@ -224,11 +225,19 @@ export function drawPathlines(
       else ctx.lineTo(sx, sy);
     }
     ctx.stroke();
+    // End marker: solid dot = where the parcel is now; hollow ring = where it left through the lip.
     const [ex, ey] = toScreen(v, pts[pts.length - 2], pts[pts.length - 1]);
-    ctx.fillStyle = theme.ink;
+    const poured = status !== undefined && status[info.pathlineParticles[idx]] === STATUS_DISCHARGED;
     ctx.beginPath();
-    ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(ex, ey, poured ? 3.5 : 2.5, 0, Math.PI * 2);
+    if (poured) {
+      ctx.strokeStyle = theme.ink;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = theme.ink;
+      ctx.fill();
+    }
   });
   ctx.restore();
 }

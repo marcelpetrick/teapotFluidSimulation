@@ -340,3 +340,22 @@ td:first-child {
   font-size: 0.82rem;
   z-index: 10;
 }
+
+#shapeCanvas {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  touch-action: none;
+  cursor: crosshair;
+}
+.legend-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  flex-basis: 100%;
+}
+#tiltSlider {
+  vertical-align: middle;
+}

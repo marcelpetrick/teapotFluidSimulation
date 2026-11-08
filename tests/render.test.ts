@@ -122,6 +122,14 @@ describe('scene drawing', () => {
     if (f.type !== 'frame') throw new Error();
     const pc = fakeCtx();
     drawPathlines(pc, vp, info, [[0, 0], ...(f.metrics ?? metrics).pathlines], theme);
+    // Poured parcels end in a hollow ring (stroke) instead of a solid dot (fill).
+    const allPoured = new Uint8Array(info.n).fill(STATUS_DISCHARGED);
+    const ring = fakeCtx();
+    drawPathlines(ring, vp, info, (f.metrics ?? metrics).pathlines, theme, allPoured);
+    const dots = fakeCtx();
+    drawPathlines(dots, vp, info, (f.metrics ?? metrics).pathlines, theme, new Uint8Array(info.n));
+    expect(ring.calls.filter((c) => c === 'fill').length).toBe(0);
+    expect(dots.calls.filter((c) => c === 'fill').length).toBeGreaterThan(0);
     expect(pc.calls).toContain('arc');
     const ac = fakeCtx();
     drawArrows(ac, vp, f.arrows, theme);
