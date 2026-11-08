@@ -123,6 +123,19 @@ describe('solver: verification cases', () => {
     expect(s.temperature).toBeNull();
   });
 
+  it('German glass teapot pours from the top: no bottom-layer liquid leaves', () => {
+    const sim = new Simulation(cfgFor('glass-gentle'));
+    while (!sim.finished && sim.controller.phase !== 'done') sim.advance(0.25);
+    sim.advance(0.5); // let liquid in transit over the lip arrive
+    const d = sim.diagnostics();
+    expect(d.volumeDischarged).toBeGreaterThan(380e-6);
+    expect(d.volumeDischarged).toBeLessThan(420e-6);
+    const byOrigin = [0, 0, 0];
+    for (const p of sim.dischargeOrder) byOrigin[sim.origin[p]]++;
+    expect(byOrigin[0]).toBe(0);
+    expect(byOrigin[2]).toBeGreaterThan(byOrigin[1]);
+  });
+
   it('still control: nothing leaves the pot', () => {
     const sim = new Simulation(cfgFor('teapot-still', (c) => (c.duration = 1.5)));
     while (!sim.finished) sim.advance(0.5);

@@ -44,6 +44,7 @@ export const CASES: Case[] = [
   { id: 'fast-44', preset: 'teapot-fast' },
   { id: 'slow-44', preset: 'teapot-slow' },
   { id: 'pitcher-44', preset: 'pitcher-gentle' },
+  { id: 'glass-44', preset: 'glass-gentle' },
   { id: 'repeat-44', preset: 'teapot-repeat' },
 ];
 

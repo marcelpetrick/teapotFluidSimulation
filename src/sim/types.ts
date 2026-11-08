@@ -18,7 +18,7 @@ export const STATUS_LOST = 3;
 export type TransferScheme = 'flip' | 'apic';
 export type WallTreatment = 'free-slip';
 export type ThermalMode = 'off' | 'passive' | 'coupled';
-export type VesselKind = 'tank' | 'pitcher' | 'teapot';
+export type VesselKind = 'tank' | 'pitcher' | 'teapot' | 'glass';
 
 /** Vessel geometry, all lengths in metres, in pot-local coordinates (y up, pivot at local origin offset). */
 export interface VesselConfig {
@@ -39,8 +39,10 @@ export interface VesselConfig {
   spoutLength: number;
   /** Teapot only: spout elevation angle in degrees from horizontal. */
   spoutAngleDeg: number;
-  /** Pitcher only: horizontal extent of the pouring lip. */
+  /** Pitcher/glass: horizontal extent of the pouring lip. */
   lipLength: number;
+  /** Pitcher/glass: rise of the lip tip above the rim as a fraction of lipLength. */
+  lipRise: number;
 }
 
 /** Prescribed vessel motion: smooth tilt-in, hold, controlled return. Angles in degrees, positive = toward spout. */

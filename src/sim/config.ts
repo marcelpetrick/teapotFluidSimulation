@@ -24,6 +24,23 @@ export const WATER_70C = {
 export const QUALITY_LADDER = [44, 64, 96] as const;
 
 export function defaultVessel(kind: VesselConfig['kind']): VesselConfig {
+  if (kind === 'glass') {
+    // German-style glass teapot: a wide glass cylinder, flat bottom with a small radius,
+    // no spout - a short lip at the rim. Liquid can only leave over the top.
+    return {
+      kind,
+      innerWidth: 0.19,
+      innerHeight: 0.13,
+      wall: 0.01, // thicker than real glass: walls need >= 2.5 cells at the coarsest resolution
+      cornerRadius: 0.012,
+      inletHeight: 0,
+      channelWidth: 0,
+      spoutLength: 0,
+      spoutAngleDeg: 0,
+      lipLength: 0.018,
+      lipRise: 0.15,
+    };
+  }
   return {
     kind,
     innerWidth: 0.16,
@@ -35,7 +52,14 @@ export function defaultVessel(kind: VesselConfig['kind']): VesselConfig {
     spoutLength: 0.14,
     spoutAngleDeg: 45,
     lipLength: 0.03,
+    lipRise: 0.35,
+    ...(kind === 'pitcher' ? { innerHeight: 0.13 } : {}),
   };
+}
+
+/** Fill height (m) that represents the 1.5 L reference fill in each vessel model. */
+export function referenceFillHeight(kind: VesselConfig['kind']): number {
+  return kind === 'glass' ? 0.085 : 0.1;
 }
 
 export function defaultMotion(): MotionConfig {
@@ -222,9 +246,22 @@ export const PRESETS: PresetInfo[] = [
     status: 'Version 1',
     build: make('pitcher-gentle', 'Gentle 400 mL pour (rim pitcher)', (c) => {
       c.vessel = defaultVessel('pitcher');
-      c.vessel.innerHeight = 0.13;
       c.motion.holdAngleDeg = 30;
       c.motion.anticipation = 0.229;
+    }),
+  },
+  {
+    id: 'glass-gentle',
+    label: 'German glass teapot (top lip)',
+    purpose:
+      'Wide glass cylinder without a spout: liquid can only leave over the lip at the rim, so the top of the pot reaches the cup first.',
+    status: 'Version 1',
+    build: make('glass-gentle', 'Gentle 400 mL pour (German glass teapot)', (c) => {
+      c.vessel = defaultVessel('glass');
+      c.fillHeight = referenceFillHeight('glass');
+      c.pivotLocal = [0.095, 0.06];
+      c.motion.holdAngleDeg = 25;
+      c.motion.anticipation = 0.186;
     }),
   },
   {
@@ -384,7 +421,7 @@ export function validateSettings(s: UserSettings): string[] {
   }
   if (!(QUALITY_LADDER as readonly number[]).includes(s.quality))
     errs.push(`Resolution must be one of ${QUALITY_LADDER.join(', ')}.`);
-  if (!['tank', 'pitcher', 'teapot'].includes(s.vessel)) errs.push('Unknown vessel.');
+  if (!['tank', 'pitcher', 'teapot', 'glass'].includes(s.vessel)) errs.push('Unknown vessel.');
   if (!['flip', 'apic'].includes(s.transfer)) errs.push('Unknown transfer scheme.');
   if (!['off', 'passive', 'coupled'].includes(s.thermal)) errs.push('Unknown thermal mode.');
   if (Number.isFinite(s.targetMl) && Number.isFinite(s.fillMl) && s.targetMl >= s.fillMl)
@@ -397,10 +434,10 @@ export function configFromSettings(s: UserSettings): ExperimentConfig {
   const c = presetById(s.preset).build();
   if (s.vessel !== c.vessel.kind) {
     c.vessel = defaultVessel(s.vessel);
-    if (s.vessel === 'pitcher') c.vessel.innerHeight = 0.13;
+    c.pivotLocal = [c.vessel.innerWidth / 2, 0.06];
   }
   // Fill height scales with requested volume relative to the 1.5 L reference fill.
-  c.fillHeight = 0.1 * (s.fillMl / 1500);
+  c.fillHeight = referenceFillHeight(c.vessel.kind) * (s.fillMl / 1500);
   c.initialVolume = s.fillMl * ML;
   if (c.motion.kind === 'pour') c.motion.targetVolume = s.targetMl * ML;
   c.motion.tiltDuration = s.tiltDuration;
@@ -453,7 +490,8 @@ export function settingsFromQuery(q: string): UserSettings {
       (out as unknown as Record<string, number>)[k] = Number(raw);
   }
   const vessel = p.get('vessel');
-  if (vessel === 'tank' || vessel === 'pitcher' || vessel === 'teapot') out.vessel = vessel;
+  if (vessel === 'tank' || vessel === 'pitcher' || vessel === 'teapot' || vessel === 'glass')
+    out.vessel = vessel;
   const transfer = p.get('transfer');
   if (transfer === 'flip' || transfer === 'apic') out.transfer = transfer;
   const thermal = p.get('thermal');

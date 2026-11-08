@@ -46,7 +46,10 @@ least 6–8 cells) is multiplied by the same depth (~8.6 cm), the spout is far w
 - Vessels (`vessel.ts`) are unions of thick polyline segments (capsules) in pot-local coordinates, with
   an analytic signed distance. Teapot: rounded body, an inlet opening in the right wall at 45 mm and an
   inclined channel to the lip; the lower lip tip sits above the fill level, so the pot holds its liquid
-  at rest. Pitcher: rounded body with a short rising lip. Tank: open box for verification.
+  at rest. German glass teapot (`glass`): a wide cylinder (190 mm inner width, 130 mm high, small
+  bottom radius) with a short, almost flat lip at the rim and no spout, so liquid can only leave over the
+  top; the wall is drawn 10 mm thick because walls must span at least 2.5 cells at the coarsest
+  resolution. Pitcher: rounded body with a short rising lip. Tank: open box for verification.
 - The vessel rotates about a pivot through a **stationary world grid**; gravity stays fixed downward.
   Wall velocity is ω × (x − pivot), with ω the exact angle change per substep divided by dt.
 - The pressure grid voxelises the walls: a cell is solid if its centre is inside the wall. Solid faces

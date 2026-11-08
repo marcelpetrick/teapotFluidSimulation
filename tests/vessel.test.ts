@@ -63,6 +63,19 @@ describe('vessel geometry', () => {
     expect(tipY).toBeGreaterThan(0.1);
   });
 
+  it('German glass teapot: wide cylinder, no spout, lip section at the rim', () => {
+    const c = defaultVessel('glass');
+    const v = buildVessel(c);
+    expect(v.spoutPolygon).toBeNull();
+    expect(v.outflow).not.toBeNull();
+    expect(c.innerWidth).toBeGreaterThan(c.innerHeight);
+    // The only opening is above the rim: the section starts at the lip tip, above the rim.
+    expect(Math.min(v.outflow!.ay, v.outflow!.by)).toBeGreaterThan(c.innerHeight - 0.03);
+    // Closed side wall all the way up on the pouring side (no low inlet).
+    for (let y = 0.005; y < c.innerHeight; y += 0.005)
+      expect(vesselSdf(v, c.innerWidth + c.wall / 2, y)).toBeLessThan(0);
+  });
+
   it('pitcher has a lip section', () => {
     const v = buildVessel(defaultVessel('pitcher'));
     expect(v.outflow).not.toBeNull();

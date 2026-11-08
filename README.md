@@ -35,7 +35,11 @@ does pouring mix what remains?**
     over-representation ratio **B**, and a map of the **initial positions** of the poured parcels.
   - _What happened to the liquid left behind?_ — origin-to-region matrix, multi-scale segregation
     **S**, and a **survivor-cohort** analysis that separates selective removal from real mixing.
-- Presets: gentle / faster / slower pour, still control, tilt without spilling, rim-pouring pitcher,
+- Pot models: a **teapot with a low-inlet spout**, a **German glass teapot** (wide glass cylinder with
+  a pouring lip at the rim, no spout — it can only pour from the top), a rim-pouring **pitcher**, and an
+  open test tank. "Change the spout" cycles through the pot models.
+- Presets: gentle / faster / slower pour, still control, tilt without spilling, German glass teapot,
+  rim-pouring pitcher,
   repeated pours, warm-over-cool stratification and cooling-driven convection (thermal Version 2).
 - Every run exports a reproducible **JSON record**, **CSV metrics** and a **PNG** view.
 

@@ -197,6 +197,10 @@ describe('App (integration with the real simulation host)', () => {
     expect(t.app.settings.preset).toBe('teapot-slow');
     $('cmpSpout').click();
     await t.settle();
+    expect(t.app.settings.preset).toBe('glass-gentle');
+    expect(t.app.info?.config.vessel.kind).toBe('glass');
+    $('cmpSpout').click();
+    await t.settle();
     expect(t.app.settings.preset).toBe('pitcher-gentle');
     $('cmpSpout').click();
     await t.settle();

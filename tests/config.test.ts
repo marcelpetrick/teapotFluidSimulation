@@ -85,6 +85,10 @@ describe('settings', () => {
     const t = configFromSettings({ ...settingsFromConfig(presetById('teapot-tilt').build()), holdAngle: 6 });
     expect(t.motion.maxAngleDeg).toBe(6);
     expect(t.motion.targetVolume).toBe(0);
+    const glass = configFromSettings({ ...base, vessel: 'glass' });
+    expect(glass.vessel.kind).toBe('glass');
+    expect(glass.fillHeight).toBeCloseTo(0.085);
+    expect(glass.pivotLocal[0]).toBeCloseTo(0.095);
     const tank = configFromSettings({ ...base, vessel: 'tank' });
     expect(tank.vessel.kind).toBe('tank');
   });

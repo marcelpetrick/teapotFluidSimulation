@@ -74,6 +74,13 @@ export interface RunSummary {
 
 const MAX_STORED_FRAMES = 900;
 
+/** "Change the spout" cycles through the pot models: spout teapot -> glass pot -> pitcher. */
+const NEXT_POT: Record<string, string> = {
+  teapot: 'glass-gentle',
+  glass: 'pitcher-gentle',
+  pitcher: 'teapot-gentle',
+};
+
 export class App {
   private d: AppDeps;
   settings: UserSettings;
@@ -165,6 +172,7 @@ export class App {
     f.innerHTML = '';
     this.selectField(f, 'vessel', 'Vessel', [
       ['teapot', 'Teapot (low-inlet spout)'],
+      ['glass', 'German glass teapot (cylinder, top lip)'],
       ['pitcher', 'Pitcher (rim lip)'],
       ['tank', 'Open tank (test)'],
     ]);
@@ -296,9 +304,7 @@ export class App {
     });
     on('cmpStill', 'click', () => this.loadPreset('teapot-still'));
     on('cmpSlow', 'click', () => this.loadPreset('teapot-slow'));
-    on('cmpSpout', 'click', () =>
-      this.loadPreset(this.settings.vessel === 'pitcher' ? 'teapot-gentle' : 'pitcher-gentle'),
-    );
+    on('cmpSpout', 'click', () => this.loadPreset(NEXT_POT[this.settings.vessel] ?? 'teapot-gentle'));
     for (const id of ['mode', 'highlight', 'pathlines', 'arrows', 'markers'])
       on(id, 'change', () => this.render());
     this.bindChartTooltips();

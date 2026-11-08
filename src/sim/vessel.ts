@@ -136,8 +136,9 @@ export function buildVessel(c: VesselConfig): Vessel {
 
   if (c.kind === 'tank') {
     polylines = [bodyPath(c, c.innerHeight)];
-  } else if (c.kind === 'pitcher') {
-    const lipRise = c.lipLength * 0.35;
+  } else if (c.kind === 'pitcher' || c.kind === 'glass') {
+    // Rim lip: the right wall continues past the rim into a short lip ("Ausgiesser").
+    const lipRise = c.lipLength * c.lipRise;
     const tipX = xr + c.lipLength;
     const tipY = c.innerHeight + lipRise;
     polylines = [[...bodyPath(c, c.innerHeight), [tipX, tipY]]];
