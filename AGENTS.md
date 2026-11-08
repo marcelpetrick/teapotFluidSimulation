@@ -1,43 +1,51 @@
 # AGENTS.md — working rules for coding agents
 
 Project: **PourLab** — browser 2D fluid experiment answering "where does poured tea come from, and does
-pouring mix the pot?". Product spec: [`vision.md`](vision.md). Living plan: [`plan.md`](plan.md).
+pouring mix the pot?". Spec: [`vision.md`](vision.md). Plan and status: [`plan.md`](plan.md).
+Architecture: [`docs/architecture.md`](docs/architecture.md).
 
 ## Ground rules
 
 - Work directly on `main`. Atomic commits with [Conventional Commits](https://www.conventionalcommits.org/)
-  messages (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `build:`, `refactor:`, `perf:`, `chore:`).
+  messages (`feat:`, `fix:`, `perf:`, `test:`, `docs:`, `ci:`, `build:`, `refactor:`, `chore:`).
 - Semantic versioning in `package.json`: every commit bumps the patch version
-  (`scripts/bump-version.sh patch`); a major feature bumps the minor version (`scripts/bump-version.sh minor`).
-- Every commit must be green: run `./localPipeline.sh` before committing, then push.
-- Keep unit/integration line coverage at or above 95 % (enforced in `vite.config.ts`).
-- Licence: GPL-3.0-or-later. New source files start with the SPDX header:
-  `// SPDX-License-Identifier: GPL-3.0-or-later` and `// Copyright (C) 2026 Marcel Petrick`.
-- Pin dependencies to exact versions.
+  (`scripts/bump-version.sh patch`); a major feature bumps the minor version (`... minor`).
+- Every commit must be green. Use `scripts/commit.sh "type(scope): subject" [body…]`: it runs the full
+  pipeline on exactly the staged tree (`scripts/verify-staged.sh`) and commits and pushes only on success.
+  Never pipe the verification through `tail` or similar in a way that hides its exit status.
+- Keep line/statement/function coverage ≥ 95 % (branches ≥ 85 %), enforced in `vite.config.ts`.
+- GPL-3.0-or-later. New files start with `// SPDX-License-Identifier: GPL-3.0-or-later` and
+  `// Copyright (C) 2026 Marcel Petrick`.
+- Pin dependencies exactly. **TypeScript stays on 6.0.x** until typescript-eslint supports 7.x.
+- Every control in the UI needs a tooltip (`src/ui/help.ts`); a test enforces this.
 
 ## Physics honesty rules (from the vision)
 
 - Never manufacture outflow or results; never delete parcels to hit a target.
-- Origin labels are immutable and never averaged; colours derive from labels only.
-- Metrics come from raw parcel state, never from rendered pixels.
-- Numerical stabilisers must be logged and swept; they are not physics.
+- Origin labels are immutable; colours derive from labels only. Metrics come from raw parcel state.
+- Numerical stabilisers are logged and swept; they are not physics.
+- Keep runs deterministic: whole stable substeps only, independent of how time is chunked; record
+  manual inputs.
+- Performance changes must keep the reference pour bit-for-bit identical, or be justified, re-calibrated
+  (`scripts/calibrate-anticipation.ts`) and documented in `docs/validation.md`.
 - Show model limits beside results; label 2D-equivalent volumes.
 
 ## Layout
 
-| Path            | Purpose                                                               |
-| --------------- | --------------------------------------------------------------------- |
-| `src/sim/`      | Browser-independent solver, geometry, motion, metrics, config, export |
-| `src/worker/`   | Worker host (testable) and worker entry                               |
-| `src/render/`   | Canvas scene and charts                                               |
-| `src/ui/app.ts` | Main-thread app with injected dependencies                            |
-| `tests/`        | Vitest unit and integration tests                                     |
-| `e2e/`          | Playwright tests against the built site under the Pages sub-path      |
-| `scripts/`      | Reusable helper scripts (documented in `scripts/README.md`)           |
-| `benchmarks/`   | Headless benchmark and refinement runners                             |
-| `docs/`         | Physics, validation, sources                                          |
+| Path          | Purpose                                                               |
+| ------------- | --------------------------------------------------------------------- |
+| `src/sim/`    | Browser-independent solver, geometry, motion, metrics, config, export |
+| `src/worker/` | Worker host (testable, time-budgeted pumping) and worker entry        |
+| `src/render/` | Canvas scene and charts                                               |
+| `src/ui/`     | App, shape editor, tooltip texts                                      |
+| `tests/`      | Vitest unit and integration tests (happy-dom for UI)                  |
+| `e2e/`        | Playwright tests against the built site under the Pages sub-path      |
+| `scripts/`    | Helper scripts, documented in `scripts/README.md`                     |
+| `benchmarks/` | Benchmark, profile and performance runners plus committed results     |
+| `docs/`       | Physics, validation, architecture, sources                            |
+| `media/`      | Showcase GIFs, named with the version they were rendered from         |
 
 ## Commands
 
-`npm ci`, `npm run dev`, `npm test`, `npm run coverage`, `npm run build`, `npm run preview`,
-`npm run e2e`, `./localPipeline.sh` (everything, as CI runs it).
+`npm ci`, `npm run dev`, `npm test`, `npm run coverage`, `npm run build`, `npm run e2e`,
+`./localPipeline.sh`, `npx tsx benchmarks/profile.ts`, `npx tsx scripts/render-gif.ts <preset> <out.gif>`.

@@ -12,6 +12,18 @@ Small reusable helpers. All are run from the repository root.
 | `serve-subpath.mjs`         | Static server for `dist/` under a sub-path, mimicking GitHub Pages; used by Playwright.                                                                                     | `node scripts/serve-subpath.mjs dist 4173 /teapotFluidSimulation/` |
 | `screenshot.ts`             | Captures the README screenshot (`docs/screenshot.png`) from the built site mid-pour with Playwright.                                                                        | `npm run build && npx tsx scripts/screenshot.ts`                   |
 
+More helpers:
+
+- `render-gif.ts` — renders a looping showcase GIF of a preset from the production build, frame by
+  frame with single simulation steps (deterministic), via ffmpeg:
+  `npm run build && npx tsx scripts/render-gif.ts glass-gentle media/pourlab-vX.Y.Z-glass-teapot.gif 12`.
+- `measure-browser.ts` — frame rate and simulated-time throughput in headless Chromium and Firefox:
+  `npm run build && npx tsx scripts/measure-browser.ts > benchmarks/browser.json`.
+- `../benchmarks/profile.ts` — share of run time per solver phase:
+  `npx tsx benchmarks/profile.ts teapot-gentle 44 3`.
+- `../benchmarks/run.ts` / `../benchmarks/perf.ts` — verification/sensitivity cases and isolated
+  throughput (see `docs/validation.md`).
+
 Typical commit flow:
 
 ```bash
