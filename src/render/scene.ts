@@ -51,6 +51,8 @@ export type ColourMode = 'origin' | 'poured-map' | 'speed' | 'temperature';
 
 export interface SceneOptions {
   mode: ColourMode;
+  /** Origin to emphasise in 'origin' mode; -1 shows all origins in colour. */
+  highlight?: number;
   pathlines: boolean;
   arrows: boolean;
   markers: boolean;
@@ -188,7 +190,10 @@ export function drawParcels(
         colour = st === STATUS_DISCHARGED ? theme.origins[k % theme.origins.length] : theme.dim;
         break;
       default:
-        colour = theme.origins[k % theme.origins.length];
+        colour =
+          opts.highlight !== undefined && opts.highlight >= 0 && opts.highlight !== k
+            ? theme.dim
+            : theme.origins[k % theme.origins.length];
     }
     ctx.fillStyle = colour;
     const [sx, sy] = toScreen(v, pos[2 * p], y);

@@ -299,7 +299,9 @@ export class App {
     on('cmpSpout', 'click', () =>
       this.loadPreset(this.settings.vessel === 'pitcher' ? 'teapot-gentle' : 'pitcher-gentle'),
     );
-    for (const id of ['mode', 'pathlines', 'arrows', 'markers']) on(id, 'change', () => this.render());
+    for (const id of ['mode', 'highlight', 'pathlines', 'arrows', 'markers'])
+      on(id, 'change', () => this.render());
+    this.bindChartTooltips();
     on('diagToggle', 'change', (e) => {
       (this.el('diagnostics') as HTMLDetailsElement).open = (e.target as HTMLInputElement).checked;
     });
@@ -330,6 +332,51 @@ export class App {
   }
 
   private wantCsv = false;
+
+  /** Text for a hover position on a chart (x as a fraction of the plot width), or null. */
+  chartTooltip(id: string, xFrac: number): string | null {
+    const m = this.metrics;
+    const info = this.info;
+    if (!m || !info || xFrac < 0 || xFrac > 1) return null;
+    const names = info.bandNames;
+    if (id === 'binsChart') {
+      const i = Math.floor(xFrac * Math.max(m.bins.length, 8));
+      const b = m.bins[i];
+      if (!b) return null;
+      const tot = b.byOrigin.reduce((a, c) => a + c, 0);
+      const parts = b.byOrigin.map((v, k) => `${names[k]} ${((v / tot) * 100).toFixed(0)}%`).join(', ');
+      return `${(b.from * 1e6).toFixed(0)}-${(b.to * 1e6).toFixed(0)} mL${b.partial ? ' (partial)' : ''}: ${parts}`;
+    }
+    if (id === 'biasChart') {
+      const k = Math.min(names.length - 1, Math.floor(xFrac * names.length));
+      const v = m.composition.bias?.[k];
+      return `${names[k]}: B = ${v === null || v === undefined ? 'n/a' : v.toFixed(2)}`;
+    }
+    return null;
+  }
+
+  private bindChartTooltips(): void {
+    const tip = this.el('tooltip');
+    for (const id of ['binsChart', 'biasChart']) {
+      const c = this.el<HTMLCanvasElement>(id);
+      c.addEventListener('mousemove', (e: MouseEvent) => {
+        const r = c.getBoundingClientRect();
+        const box = { left: 40, right: 8 }; // matches chartBox()
+        const sx = r.width > 0 ? c.width / r.width : 1;
+        const x = (e.clientX - r.left) * sx;
+        const text = this.chartTooltip(id, (x - box.left) / (c.width - box.left - box.right));
+        tip.hidden = text === null;
+        if (text !== null) {
+          tip.textContent = text;
+          tip.style.left = `${e.clientX + 12}px`;
+          tip.style.top = `${e.clientY + 12}px`;
+        }
+      });
+      c.addEventListener('mouseleave', () => {
+        tip.hidden = true;
+      });
+    }
+  }
 
   private post(m: ToWorker): void {
     this.d.worker.postMessage(m);
@@ -510,6 +557,7 @@ export class App {
     const mode = this.el<HTMLSelectElement>('mode').value as ColourMode;
     const opts = {
       mode,
+      highlight: Number(this.el<HTMLSelectElement>('highlight').value),
       pathlines: this.el<HTMLInputElement>('pathlines').checked,
       arrows: this.el<HTMLInputElement>('arrows').checked,
       markers: this.el<HTMLInputElement>('markers').checked,
@@ -563,7 +611,13 @@ export class App {
     const names = info.bandNames;
     const sum = this.el('summary');
     sum.innerHTML = '';
-    for (const line of summarize(m.composition, m.mixing, names, info.config.motion.targetVolume * 1e6)) {
+    for (const line of summarize(
+      m.composition,
+      m.mixing,
+      names,
+      info.config.motion.targetVolume * 1e6,
+      this.finished,
+    )) {
       const li = this.d.doc.createElement('li');
       li.textContent = line;
       sum.appendChild(li);

@@ -97,6 +97,10 @@ describe('App (integration with the real simulation host)', () => {
     expect($('tables').textContent).toMatch(/Segregation S/);
     expect($('diagList').textContent).toMatch(/Pressure residual/);
     expect($('summary').children.length).toBeGreaterThan(0);
+    t.app.metrics!.bins = [{ from: 0, to: 5e-5, byOrigin: [1e-5, 2e-5, 2e-5], partial: true }];
+    t.app.metrics!.composition.bias = [1.2, 0.9, 0.8];
+    expect(t.app.chartTooltip('binsChart', 0.05)).toMatch(/0-50 mL \(partial\): bottom 20%/);
+    expect(t.app.chartTooltip('biasChart', 0.1)).toBe('bottom: B = 1.20');
     const scrub = $('scrub') as HTMLInputElement;
     expect(scrub.disabled).toBe(false);
     scrub.value = '0';
@@ -123,7 +127,20 @@ describe('App (integration with the real simulation host)', () => {
     speed.value = '0.5';
     speed.dispatchEvent(new Event('change'));
     expect(t.worker.host.speed).toBe(0.5);
-    for (const id of ['pathlines', 'arrows', 'markers']) $(id).dispatchEvent(new Event('change'));
+    for (const id of ['pathlines', 'arrows', 'markers', 'highlight'])
+      $(id).dispatchEvent(new Event('change'));
+    // Chart hover tooltips.
+    const bins = $('binsChart') as HTMLCanvasElement;
+    bins.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 10 }));
+    expect($('tooltip').hidden).toBe(true); // no discharge yet: no bins
+    const bias = $('biasChart') as HTMLCanvasElement;
+    bias.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 10 }));
+    expect($('tooltip').hidden).toBe(false);
+    expect($('tooltip').textContent).toMatch(/B = n\/a/);
+    bias.dispatchEvent(new MouseEvent('mouseleave'));
+    expect($('tooltip').hidden).toBe(true);
+    expect(t.app.chartTooltip('angleChart', 0.5)).toBeNull();
+    expect(t.app.chartTooltip('biasChart', 2)).toBeNull();
     const mode = $('mode') as HTMLSelectElement;
     mode.value = 'speed';
     mode.dispatchEvent(new Event('change'));

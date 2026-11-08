@@ -173,7 +173,10 @@ describe('summary text', () => {
     for (let p = 0; p < 4; p++) s.dischargeOrder.push(p);
     const lines = summarize(originComposition(s), mixingReport(s), names, 400);
     expect(lines.join(' ')).toMatch(/100% bottom/);
-    expect(lines.join(' ')).toMatch(/Target 400 mL/);
+    expect(lines.join(' ')).toMatch(/Target 400 mL; actual/);
+    expect(summarize(originComposition(s), mixingReport(s), names, 400, false).join(' ')).toMatch(
+      /poured so far 0 mL|poured so far/,
+    );
     expect(lines.join(' ')).toMatch(/stayed largely layered/);
     // Mixed survivors: shuffle positions so labels are interleaved now.
     for (let p = 0; p < s.n; p++) {

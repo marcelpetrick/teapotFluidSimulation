@@ -250,6 +250,7 @@ export function summarize(
   mix: MixingReport,
   bandNames: string[],
   targetMl: number,
+  final = true,
 ): string[] {
   const out: string[] = [];
   if (!comp.dischargedFractions || comp.dischargedVolume <= 0) {
@@ -261,7 +262,9 @@ export function summarize(
     if (targetMl > 0) {
       const over = ml - targetMl;
       out.push(
-        `Target ${targetMl.toFixed(0)} mL; actual ${ml.toFixed(0)} mL (${over >= 0 ? '+' : ''}${over.toFixed(0)} mL).`,
+        final
+          ? `Target ${targetMl.toFixed(0)} mL; actual ${ml.toFixed(0)} mL (${over >= 0 ? '+' : ''}${over.toFixed(0)} mL).`
+          : `Target ${targetMl.toFixed(0)} mL; poured so far ${ml.toFixed(0)} mL.`,
       );
     }
     if (comp.bias) {

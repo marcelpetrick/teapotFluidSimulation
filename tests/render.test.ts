@@ -79,6 +79,21 @@ describe('scene drawing', () => {
         expect(c.calls.length).toBeGreaterThan(info.n);
       }
     const withT = { ...snapshot, temperature: new Float32Array(info.n).fill(340) };
+    const hc = fakeCtx();
+    const styles: string[] = [];
+    Object.defineProperty(hc, 'fillStyle', { set: (v: string) => styles.push(v), get: () => '' });
+    drawParcels(
+      hc,
+      vp,
+      info,
+      snapshot,
+      { mode: 'origin', highlight: 1, pathlines: false, arrows: false, markers: false },
+      theme,
+      [0, 1],
+    );
+    expect(styles).toContain(theme.dim);
+    expect(styles).toContain(theme.origins[1]);
+    expect(styles).not.toContain(theme.origins[0]);
     drawParcels(
       fakeCtx(),
       vp,
