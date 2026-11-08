@@ -25,17 +25,17 @@ pouring mix the pot?". Product spec: [`vision.md`](vision.md). Living plan: [`pl
 
 ## Layout
 
-| Path | Purpose |
-|---|---|
-| `src/sim/` | Browser-independent solver, geometry, motion, metrics, config, export |
-| `src/worker/` | Worker host (testable) and worker entry |
-| `src/render/` | Canvas scene and charts |
-| `src/ui/app.ts` | Main-thread app with injected dependencies |
-| `tests/` | Vitest unit and integration tests |
-| `e2e/` | Playwright tests against the built site under the Pages sub-path |
-| `scripts/` | Reusable helper scripts (documented in `scripts/README.md`) |
-| `benchmarks/` | Headless benchmark and refinement runners |
-| `docs/` | Physics, validation, sources |
+| Path            | Purpose                                                               |
+| --------------- | --------------------------------------------------------------------- |
+| `src/sim/`      | Browser-independent solver, geometry, motion, metrics, config, export |
+| `src/worker/`   | Worker host (testable) and worker entry                               |
+| `src/render/`   | Canvas scene and charts                                               |
+| `src/ui/app.ts` | Main-thread app with injected dependencies                            |
+| `tests/`        | Vitest unit and integration tests                                     |
+| `e2e/`          | Playwright tests against the built site under the Pages sub-path      |
+| `scripts/`      | Reusable helper scripts (documented in `scripts/README.md`)           |
+| `benchmarks/`   | Headless benchmark and refinement runners                             |
+| `docs/`         | Physics, validation, sources                                          |
 
 ## Commands
 

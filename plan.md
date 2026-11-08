@@ -27,17 +27,20 @@ in delivery order. Status markers: `[x]` done, `[ ]` open. Keep this file curren
 ## Phases
 
 ### A — smallest trustworthy solver (§13 A)
+
 - [x] SI configuration, deterministic seeding (mulberry32), open-tank case
 - [x] Pressure residual, divergence, occupancy, ledger diagnostics
 - [ ] Unit tests: hydrostatic rest, projection, advection, determinism, ledger
 
 ### B — physically meaningful pouring (§13 B)
+
 - [x] World-frame moving walls, smooth tilt trajectories, moving-wall pressure fluxes
 - [x] Rim pitcher and explicit low-inlet spout teapot geometries
 - [x] Outflow section crossing, spill/loss ledger, return-to-upright controller
 - [ ] Tests: wall tunnelling, outflow-once, controller phases
 
 ### C — answer the question (§13 C, §8, §18.2)
+
 - [x] Immutable origin bands (equal volume), pathlines, initial-position poured map
 - [x] Cumulative + 50 mL bin composition, B ratios, origin-to-region matrix
 - [x] Multi-scale segregation S, survivor-cohort analysis, plain-language summary
@@ -46,6 +49,7 @@ in delivery order. Status markers: `[x]` done, `[ ]` open. Keep this file curren
 - [x] Explanations of advection, stirring, diffusion, model limits
 
 ### D — verify, polish, publish (§13 D, §11, §12)
+
 - [ ] `localPipeline.sh`: format, lint, typecheck, unit+integration tests with ≥95 % coverage, build, e2e
 - [ ] GitHub Actions mirror + GitHub Pages deployment
 - [ ] Playwright e2e in Chromium and Firefox under the Pages sub-path
@@ -54,6 +58,7 @@ in delivery order. Status markers: `[x]` done, `[ ]` open. Keep this file curren
 - [ ] `/reviewBranch`, fixes, `/githubAbout`, final vision checklist
 
 ### E — thermal and higher fidelity (§13 E, Version 2/3)
+
 - [x] Passive and Boussinesq-coupled temperature, diffusion, wall/surface cooling coefficients
 - [ ] Thermal verification tests (diffusion decay, buoyancy direction, inventory)
 - Physical experiments and a 3D reference solver require the owner (§14) and are documented as open.
