@@ -219,6 +219,32 @@ describe('solver: thermal extension', () => {
     expect(meanY(unstable, true)).toBeGreaterThan(meanY(stable, false) - 0.05);
   });
 
+  it('thermal diffusion matches the analytic decay of a cosine mode (insulated column)', () => {
+    const alpha = 1e-4; // exaggerated so the decay is measurable in 1 s
+    const sim = new Simulation(
+      cfgFor('tank-rest', (c) => {
+        c.thermal.mode = 'passive';
+        c.thermalDiffusivity = alpha;
+      }),
+    );
+    const L = sim.cfg.fillHeight;
+    const amplitude = () => {
+      let mean = 0;
+      for (let p = 0; p < sim.n; p++) mean += sim.temperature[p];
+      mean /= sim.n;
+      let a = 0;
+      for (let p = 0; p < sim.n; p++) a += (sim.temperature[p] - mean) * Math.cos((Math.PI * sim.y0[p]) / L);
+      return (2 * a) / sim.n;
+    };
+    for (let p = 0; p < sim.n; p++) sim.temperature[p] = 340 + 5 * Math.cos((Math.PI * sim.y0[p]) / L);
+    const a0 = amplitude();
+    sim.advance(1);
+    const measured = -Math.log(amplitude() / a0);
+    const analytic = (alpha * Math.PI * Math.PI) / (L * L);
+    expect(measured).toBeGreaterThan(analytic * 0.85);
+    expect(measured).toBeLessThan(analytic * 1.15);
+  });
+
   it('thermal diffusion conserves the heat inventory without cooling', () => {
     const sim = new Simulation(
       cfgFor('tank-rest', (c) => {

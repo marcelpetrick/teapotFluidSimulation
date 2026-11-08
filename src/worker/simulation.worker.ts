@@ -12,6 +12,13 @@ const ctx = self as unknown as {
   postMessage: (msg: unknown, transfer?: Transferable[]) => void;
 };
 
+// Background stepping loop: short time-budgeted chunks keep the worker responsive to messages.
+function loop(): void {
+  host.pump(performance.now());
+  setTimeout(loop, host.running ? 0 : 50);
+}
+loop();
+
 ctx.onmessage = (e) => {
   for (const out of host.handle(e.data)) {
     const transfer: Transferable[] = [];

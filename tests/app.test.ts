@@ -15,8 +15,15 @@ class FakeWorker implements WorkerLike {
   onerror: ((e: unknown) => void) | null = null;
   sent: ToWorker[] = [];
   queue: Promise<void> = Promise.resolve();
+  clock = 0;
   postMessage(msg: ToWorker): void {
     this.sent.push(msg);
+    // Emulate the worker's background stepping loop: 100 ms of wall time per frame request.
+    if (msg.type === 'frame') {
+      this.host.pump(this.clock);
+      this.clock += 100;
+      this.host.pump(this.clock, Infinity);
+    }
     const out = this.host.handle(msg);
     this.queue = this.queue.then(() => {
       for (const o of out) this.onmessage?.({ data: o });
@@ -59,6 +66,7 @@ function setup(search = '?preset=tank-tilt&duration=2', ctxOk = true) {
   const tick = async (ms = 50) => {
     clock += ms;
     frameCb?.(clock);
+    void ms;
     await worker.queue;
   };
   return { app, worker, tick, downloads, replaced, copied, settle: () => worker.queue };

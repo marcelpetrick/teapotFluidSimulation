@@ -6,3 +6,4 @@ test-results/
 pipeline-logs/
 *.log
 .DS_Store
+benchmarks/out

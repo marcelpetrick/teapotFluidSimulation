@@ -12,7 +12,7 @@ import { CELL_FLUID, type Diagnostics, type ExperimentConfig, type RenderSnapsho
 
 export type ToWorker =
   | { type: 'init'; config: ExperimentConfig }
-  | { type: 'frame'; wallDt: number }
+  | { type: 'frame' }
   | { type: 'play' }
   | { type: 'pause' }
   | { type: 'step' }
@@ -68,8 +68,8 @@ export type FromWorker =
   | { type: 'export'; json: string; csv: string; fileStem: string }
   | { type: 'error'; message: string };
 
-/** Largest simulated time advanced per frame request; beyond this the run slows and says so. */
-export const MAX_SIM_PER_FRAME = 1 / 20;
+/** Largest simulated-time backlog (s); beyond it the run slows down and says so. */
+export const MAX_DEBT = 0.1;
 
 export class SimulationHost {
   sim: Simulation | null = null;
@@ -125,6 +125,7 @@ export class SimulationHost {
     switch (msg.type) {
       case 'play':
         if (!s.finished) this.running = true;
+        this.realtime = 1;
         return [];
       case 'pause':
         this.running = false;
@@ -135,18 +136,18 @@ export class SimulationHost {
       case 'step':
         this.running = false;
         if (!s.finished) s.advance(Math.min(1 / 60, s.cfg.duration - s.time));
-        return [this.frame(1 / 60, 1 / 60, true)];
+        return [this.frame(true)];
       case 'frame': {
-        const wall = Math.max(0, Math.min(0.1, msg.wallDt));
-        let simDt = 0;
-        if (this.running && !s.finished) {
-          simDt = Math.min(wall * this.speed, MAX_SIM_PER_FRAME, s.cfg.duration - s.time);
-          if (simDt > 0) s.advance(simDt);
-          if (s.finished) this.running = false;
+        if (this.failure !== null) {
+          const message = this.failure;
+          this.failure = null;
+          return [{ type: 'error', message }];
         }
+        // Rendering is decoupled from stepping: a frame request returns the latest state;
+        // pump() advances the simulation in the background.
         this.framesSinceMetrics++;
         const withMetrics = this.framesSinceMetrics >= 6 || !this.running;
-        return [this.frame(simDt, wall, withMetrics)];
+        return [this.frame(withMetrics)];
       }
       case 'export': {
         const rec = buildRecord(s, this.appVersion);
@@ -162,7 +163,48 @@ export class SimulationHost {
     }
   }
 
-  private frame(simDt: number, wall: number, withMetrics: boolean): FromWorker {
+  /**
+   * Advance the running simulation toward real time (times the playback speed) for at most
+   * `budgetMs` of computation. Called repeatedly by the worker loop. Time debt is capped, so when
+   * the machine cannot keep up the simulation slows down (and reports it) instead of taking
+   * unstable large steps or queueing work.
+   */
+  pump(nowMs: number, budgetMs = 12, clock: () => number = () => performance.now()): void {
+    const s = this.sim;
+    const wall = this.lastPump < 0 ? 0 : Math.max(0, (nowMs - this.lastPump) / 1000);
+    this.lastPump = nowMs;
+    if (!s || !this.running || s.finished) {
+      this.debt = 0;
+      return;
+    }
+    const wanted = wall * this.speed;
+    this.debt = Math.min(this.debt + wanted, MAX_DEBT);
+    const t0 = clock();
+    let done = 0;
+    try {
+      while (this.debt > 1e-9 && clock() - t0 < budgetMs && !s.finished) {
+        const dt = Math.min(this.debt, 1 / 120, s.cfg.duration - s.time);
+        s.advance(dt);
+        this.debt -= dt;
+        done += dt;
+      }
+    } catch (e) {
+      // Reported on the next frame request.
+      this.running = false;
+      this.failure = e instanceof Error ? e.message : String(e);
+      return;
+    }
+    if (s.finished) this.running = false;
+    if (wanted > 0) this.realtime += (Math.min(1, done / wanted) - this.realtime) * 0.1;
+  }
+
+  private lastPump = -1;
+  private failure: string | null = null;
+  private debt = 0;
+  /** Smoothed fraction of the requested simulated-time rate actually achieved. */
+  realtime = 1;
+
+  private frame(withMetrics: boolean): FromWorker {
     const s = this.sim!;
     if (withMetrics) this.framesSinceMetrics = 0;
     return {
@@ -173,7 +215,7 @@ export class SimulationHost {
       arrows: velocityArrows(s, 3),
       running: this.running,
       finished: s.finished,
-      realtimeFactor: wall > 0 ? simDt / (wall * this.speed) : 0,
+      realtimeFactor: this.realtime,
     };
   }
 

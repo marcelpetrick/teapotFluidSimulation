@@ -96,7 +96,6 @@ export class App {
   frames: StoredFrame[] = [];
   scrubIndex = -1;
   runs: RunSummary[] = [];
-  private lastFrameTime = 0;
   private loopStarted = false;
   private recorded = false;
   lastError = '';
@@ -121,8 +120,7 @@ export class App {
     this.applySettings(this.settings, false);
     if (!this.loopStarted) {
       this.loopStarted = true;
-      this.lastFrameTime = this.d.now();
-      this.d.schedule((t) => this.tick(t));
+      this.d.schedule(() => this.tick());
     }
   }
 
@@ -802,13 +800,12 @@ export class App {
 
   // ------------------------------------------------------------ loop
 
-  tick(t: number): void {
-    const dt = Math.max(0, (t - this.lastFrameTime) / 1000);
-    this.lastFrameTime = t;
+  tick(): void {
+    // At most one frame request in flight; the worker steps the simulation on its own.
     if (this.info && !this.pending && this.running) {
       this.pending = true;
-      this.post({ type: 'frame', wallDt: dt });
+      this.post({ type: 'frame' });
     }
-    this.d.schedule((tt) => this.tick(tt));
+    this.d.schedule(() => this.tick());
   }
 }

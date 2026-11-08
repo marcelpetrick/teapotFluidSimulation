@@ -1,0 +1,19 @@
+{
+ "generatedAt": "2026-11-08T17:33:45.869Z",
+ "results": [
+  {
+   "browser": "chromium",
+   "version": "158.0.8127.18",
+   "rafFps": 60.162655823034775,
+   "simFramesPerSecond": 44.99700020005371,
+   "simPerWall": 0.7180076883774009
+  },
+  {
+   "browser": "firefox",
+   "version": "159.0",
+   "rafFps": 60.09655402030964,
+   "simFramesPerSecond": 47.27817546196105,
+   "simPerWall": 0.47444647910770643
+  }
+ ]
+}

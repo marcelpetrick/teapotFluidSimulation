@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Marcel Petrick
 import { describe, expect, it } from 'vitest';
-import { MAX_SIM_PER_FRAME, SimulationHost, velocityArrows, type FromWorker } from '../src/worker/host';
+import { MAX_DEBT, SimulationHost, velocityArrows, type FromWorker } from '../src/worker/host';
 import { cfgFor } from './helpers';
 
 function only<T extends FromWorker['type']>(out: FromWorker[], type: T): Extract<FromWorker, { type: T }> {
@@ -24,24 +24,35 @@ describe('worker host', () => {
     );
     expect(ready.info.n).toBeGreaterThan(1000);
     expect(ready.info.bandNames).toEqual(['bottom', 'middle', 'top']);
-    // Not running: frames do not advance time.
-    let f = only(h.handle({ type: 'frame', wallDt: 0.05 }), 'frame');
+    // Not running: pumping and frames do not advance time.
+    h.pump(0);
+    h.pump(1000);
+    let f = only(h.handle({ type: 'frame' }), 'frame');
     expect(f.diagnostics.time).toBe(0);
     expect(f.metrics).not.toBeNull();
     h.handle({ type: 'speed', value: 100 });
     expect(h.speed).toBe(4);
+    h.handle({ type: 'speed', value: 1 });
     h.handle({ type: 'play' });
-    f = only(h.handle({ type: 'frame', wallDt: 1 }), 'frame');
-    expect(f.diagnostics.time).toBeCloseTo(MAX_SIM_PER_FRAME, 9);
+    // 20 ms of wall time with an unlimited budget advances exactly 20 ms of simulated time.
+    h.pump(1020, Infinity);
+    f = only(h.handle({ type: 'frame' }), 'frame');
+    expect(f.diagnostics.time).toBeCloseTo(0.02, 9);
     expect(f.running).toBe(true);
-    expect(f.realtimeFactor).toBeLessThan(1);
     expect(f.arrows.length % 4).toBe(0);
+    // A long stall is capped (time debt bounded), and a zero budget achieves nothing: realtime drops.
+    let fake = 0;
+    h.pump(6020, 0, () => fake++);
+    expect(h.realtime).toBeLessThan(1);
+    h.pump(6021, Infinity);
+    expect(h.sim!.time).toBeLessThanOrEqual(0.02 + MAX_DEBT + 0.001 + 1e-9);
     h.handle({ type: 'pause' });
     expect(h.running).toBe(false);
+    const before = h.sim!.time;
     const s = only(h.handle({ type: 'step' }), 'frame');
-    expect(s.diagnostics.time).toBeCloseTo(MAX_SIM_PER_FRAME + 1 / 60, 9);
+    expect(s.diagnostics.time).toBeCloseTo(before + 1 / 60, 9);
     h.handle({ type: 'play' });
-    for (let k = 0; k < 20 && h.running; k++) h.handle({ type: 'frame', wallDt: 0.1 });
+    for (let k = 0; k < 400 && h.running; k++) h.pump(7000 + k * 50, Infinity);
     expect(h.running).toBe(false);
     expect(h.sim!.finished).toBe(true);
     h.handle({ type: 'play' });
@@ -62,7 +73,17 @@ describe('worker host', () => {
       throw 'boom';
     };
     weird.handle({ type: 'play' });
-    expect(only(weird.handle({ type: 'frame', wallDt: 0.02 }), 'error').message).toBe('boom');
+    weird.pump(0);
+    weird.pump(20, Infinity);
+    expect(weird.running).toBe(false);
+    expect(only(weird.handle({ type: 'frame' }), 'error').message).toBe('boom');
+    expect(only(weird.handle({ type: 'frame' }), 'frame').type).toBe('frame');
+    const thrower = new SimulationHost('t');
+    thrower.handle({ type: 'init', config: cfgFor('tank-rest') });
+    (thrower.sim as unknown as { advance: () => never }).advance = () => {
+      throw new Error('kaboom');
+    };
+    expect(only(thrower.handle({ type: 'step' }), 'error').message).toBe('kaboom');
   });
 
   it('velocity arrows sample liquid cells', () => {

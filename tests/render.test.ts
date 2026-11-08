@@ -116,8 +116,9 @@ describe('scene drawing', () => {
       [0, 1],
     );
     h.handle({ type: 'play' });
-    for (let k = 0; k < 5; k++) h.handle({ type: 'frame', wallDt: 0.05 });
-    const f = h.handle({ type: 'frame', wallDt: 0.05 })[0];
+    h.pump(0);
+    for (let k = 1; k <= 5; k++) h.pump(k * 50, Infinity);
+    const f = h.handle({ type: 'frame' })[0];
     if (f.type !== 'frame') throw new Error();
     const pc = fakeCtx();
     drawPathlines(pc, vp, info, [[0, 0], ...(f.metrics ?? metrics).pathlines], theme);
