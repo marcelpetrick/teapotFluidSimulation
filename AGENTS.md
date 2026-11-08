@@ -41,6 +41,7 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 | `src/worker/` | Worker host (testable, time-budgeted pumping) and worker entry        |
 | `src/render/` | Canvas scene and charts                                               |
 | `src/ui/`     | App, shape editor, tooltip texts                                      |
+| `src/audio/`  | Generated soundscape and pour sound                                   |
 | `tests/`      | Vitest unit and integration tests (happy-dom for UI)                  |
 | `e2e/`        | Playwright tests against the built site under the Pages sub-path      |
 | `scripts/`    | Helper scripts, documented in `scripts/README.md`                     |

@@ -14,12 +14,12 @@ colour of the layer it started in.
 
 **▶ Try it: <https://marcelpetrick.github.io/teapotFluidSimulation/>** — no install, no account.
 
-![Cyber look: German glass teapot pouring from its top layer](media/pourlab-v0.6.0-cyber-glass-teapot.gif)
+![Cyber look: German glass teapot pouring from its top layer](media/pourlab-v0.7.3-cyber-glass-teapot.gif)
 
 | Teapot with a low spout                                                                                      | German glass teapot (lip at the top)                                       |
 | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| ![Spout teapot pouring](media/pourlab-v0.5.0-spout-teapot.gif)                                               | ![German glass teapot pouring](media/pourlab-v0.5.0-glass-teapot.gif)      |
-| Liquid leaves through a low inlet: **25 % bottom, 51 % middle, 22 % top** layer, plus what sat in the spout. | Liquid can only leave over the rim: **0 % bottom, 37 % middle, 63 % top**. |
+| ![Spout teapot pouring](media/pourlab-v0.7.3-cyber-spout-teapot.gif)                                         | ![German glass teapot pouring](media/pourlab-v0.7.3-glass-teapot.gif)      |
+| Liquid leaves through a low inlet: **25 % bottom, 52 % middle, 23 % top** layer, plus what sat in the spout. | Liquid can only leave over the rim: **0 % bottom, 39 % middle, 61 % top**. |
 
 ## What you can do
 
