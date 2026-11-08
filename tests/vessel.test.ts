@@ -5,6 +5,7 @@ import { defaultVessel } from '../src/sim/config';
 import {
   buildVessel,
   crossesSection,
+  exactSdf,
   localToWorld,
   makePose,
   pointInPolygon,
@@ -96,6 +97,22 @@ describe('vessel geometry', () => {
     worldToLocal(p, 0.2, 0.3, a);
     expect(a[0]).toBeCloseTo(0.08, 12);
     expect(a[1]).toBeCloseTo(0.06, 12);
+  });
+
+  it('the far-field SDF table never changes decisions near walls', () => {
+    const v = buildVessel(defaultVessel('teapot'));
+    const rng = createRng(11);
+    const c = v.cache!;
+    for (let k = 0; k < 4000; k++) {
+      const x = c.x0 - 0.01 + rng() * (c.nx * c.step + 0.02);
+      const y = c.y0 - 0.01 + rng() * (c.ny * c.step + 0.02);
+      const exact = exactSdf(v, x, y);
+      const fast = vesselSdf(v, x, y);
+      if (exact < c.exact)
+        expect(fast).toBe(exact); // exact near walls (and outside the table)
+      else expect(Math.abs(fast - exact)).toBeLessThan(c.step); // approximate only far away
+      expect(Math.sign(fast)).toBe(Math.sign(exact));
+    }
   });
 
   it('point in polygon', () => {

@@ -37,6 +37,49 @@ export interface Vessel {
   spoutPolygon: [number, number][] | null;
   /** Bounding envelope in local coordinates; a parcel outside it that was not discharged is a spill. */
   envelope: { x0: number; x1: number; y0: number; y1: number };
+  /** Precomputed far-field distance table (local frame, static because the vessel is rigid). */
+  cache: SdfCache | null;
+}
+
+/**
+ * Tabulated SDF used only as a fast exit far from the walls: where the tabulated value exceeds
+ * `exact` the true distance is certainly positive and larger than any collision margin, so the
+ * table value is returned; closer to the walls the exact distance is always computed.
+ */
+export interface SdfCache {
+  x0: number;
+  y0: number;
+  step: number;
+  nx: number;
+  ny: number;
+  exact: number;
+  values: Float32Array;
+}
+
+function buildCache(v: Vessel, step: number): SdfCache {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const pl of v.polylines)
+    for (const [x, y] of pl) {
+      x0 = Math.min(x0, x);
+      y0 = Math.min(y0, y);
+      x1 = Math.max(x1, x);
+      y1 = Math.max(y1, y);
+    }
+  const pad = 0.03;
+  x0 -= pad;
+  y0 -= pad;
+  x1 += pad;
+  y1 += pad;
+  const nx = Math.ceil((x1 - x0) / step) + 1;
+  const ny = Math.ceil((y1 - y0) / step) + 1;
+  const values = new Float32Array(nx * ny);
+  for (let j = 0; j < ny; j++)
+    for (let i = 0; i < nx; i++) values[i + j * nx] = exactSdf(v, x0 + i * step, y0 + j * step);
+  // Bilinear interpolation of a 1-Lipschitz function errs by at most ~step; 3 steps is safe.
+  return { x0, y0, step, nx, ny, exact: 3 * step, values };
 }
 
 function arc(cx: number, cy: number, r: number, a0: number, a1: number, n: number): [number, number][] {
@@ -165,7 +208,7 @@ export function buildVessel(c: VesselConfig): Vessel {
     envelope.x1 = Math.max(lowTip[0], upTip[0]) + c.wall * 2;
     envelope.y1 = Math.max(envelope.y1, upTip[1] + 1.0);
   }
-  return {
+  const vessel: Vessel = {
     config: c,
     segments: toSegments(polylines),
     polylines,
@@ -173,11 +216,37 @@ export function buildVessel(c: VesselConfig): Vessel {
     outflow,
     spoutPolygon,
     envelope,
+    cache: null,
   };
+  vessel.cache = buildCache(vessel, 0.002);
+  return vessel;
 }
 
 /** Signed distance (local coordinates) to the vessel wall surface. Negative inside solid. */
 export function vesselSdf(v: Vessel, x: number, y: number): number {
+  const c = v.cache;
+  if (c) {
+    const gx = (x - c.x0) / c.step;
+    const gy = (y - c.y0) / c.step;
+    const i = Math.floor(gx);
+    const j = Math.floor(gy);
+    if (i >= 0 && j >= 0 && i < c.nx - 1 && j < c.ny - 1) {
+      const fx = gx - i;
+      const fy = gy - j;
+      const k = i + j * c.nx;
+      const val =
+        (1 - fx) * (1 - fy) * c.values[k] +
+        fx * (1 - fy) * c.values[k + 1] +
+        (1 - fx) * fy * c.values[k + c.nx] +
+        fx * fy * c.values[k + c.nx + 1];
+      if (val > c.exact) return val;
+    }
+  }
+  return exactSdf(v, x, y);
+}
+
+/** Exact signed distance (no table). */
+export function exactSdf(v: Vessel, x: number, y: number): number {
   let best = Infinity;
   const segs = v.segments;
   for (let k = 0; k < segs.length; k++) {

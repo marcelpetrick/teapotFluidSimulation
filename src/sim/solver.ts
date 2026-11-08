@@ -1051,8 +1051,12 @@ export class Simulation {
 
       // Collision against the vessel at its new pose.
       worldToLocal(poseNew, x1, y1, loc1);
-      const d = vesselSdfGrad(vessel, loc1[0], loc1[1], grad);
+      // Cheap far-field check first; the exact distance and gradient only near walls.
+      let collided = false;
+      const d =
+        vesselSdf(vessel, loc1[0], loc1[1]) < margin ? vesselSdfGrad(vessel, loc1[0], loc1[1], grad) : margin;
       if (d < margin) {
+        collided = true;
         const push = margin - d;
         loc1[0] += grad[0] * push;
         loc1[1] += grad[1] * push;
@@ -1100,7 +1104,8 @@ export class Simulation {
         continue;
       }
       // Deep inside a wall after correction means the collision failed: count it as lost.
-      if (vesselSdf(vessel, loc1[0], loc1[1]) < -0.5 * vessel.halfWall) this.setStatus(p, STATUS_LOST);
+      if (collided && vesselSdf(vessel, loc1[0], loc1[1]) < -0.5 * vessel.halfWall)
+        this.setStatus(p, STATUS_LOST);
     }
   }
 
