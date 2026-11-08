@@ -361,6 +361,9 @@ export class App {
     this.frames = [];
     this.scrubIndex = -1;
     this.running = false;
+    // A new experiment starts silent and the pour-rate tracker starts from scratch.
+    this.sound.setPourIntensity(0);
+    this.lastPour = { time: -1, volume: 0 };
     this.finished = false;
     this.recorded = false;
     this.pending = true;

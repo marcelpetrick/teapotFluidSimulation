@@ -334,8 +334,17 @@ describe('App (integration with the real simulation host)', () => {
     for (let k = 0; k < 40 && !t.app.finished; k++) {
       await t.tick(100);
       maxLevel = Math.max(maxLevel, t.app.sound.intensity);
+      if (maxLevel > 0.3) break; // stop mid-pour
     }
     expect(maxLevel).toBeGreaterThan(0.3); // audible while pouring
+
+    // Reset mid-pour: the pour noise stops at once and the next run tracks its own flow.
+    $('reset').click();
+    expect(t.app.sound.intensity).toBe(0);
+    await t.settle();
+    $('pour').click();
+    for (let k = 0; k < 40 && t.app.sound.intensity === 0; k++) await t.tick(100);
+    expect(t.app.sound.intensity).toBeGreaterThan(0);
     $('play').click(); // pausing silences the pour
     expect(t.app.sound.intensity).toBe(0);
     $('soundToggle').click();
