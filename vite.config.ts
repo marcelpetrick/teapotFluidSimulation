@@ -15,7 +15,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
     passWithNoTests: true,
-    testTimeout: 60000,
+    // Solver verification runs whole experiments; under coverage on a busy machine they need headroom.
+    testTimeout: 300000,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
