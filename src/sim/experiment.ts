@@ -52,6 +52,8 @@ export interface ExperimentRecord {
     parcels: number;
   };
   motionEvents: { time: number; phase: string; angleDeg: number; dischargedMl: number }[];
+  /** Manual mode: every tilt the user asked for, with the simulated time (reproducible input history). */
+  manualInputs: { time: number; targetDeg: number }[];
   diagnostics: ReturnType<Simulation['diagnostics']>;
   composition: ReturnType<typeof originComposition>;
   bins: ReturnType<typeof dischargeBins>;
@@ -87,6 +89,7 @@ export function buildRecord(sim: Simulation, appVersion: string, now = new Date(
       angleDeg: e.angleDeg,
       dischargedMl: e.discharged * 1e6,
     })),
+    manualInputs: sim.controller.inputs.slice(),
     diagnostics: sim.diagnostics(),
     composition: comp,
     bins: dischargeBins(sim),

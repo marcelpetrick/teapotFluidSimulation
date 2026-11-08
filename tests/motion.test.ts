@@ -78,6 +78,26 @@ describe('pour controller', () => {
     expect(ctl.phase).toBe('done');
   });
 
+  it('manual mode follows the requested angle smoothly and records every input', () => {
+    const c = { ...defaultMotion(), kind: 'manual' as const, maxAngleDeg: 90 };
+    const ctl = new PourController(c);
+    expect(ctl.phase).toBe('manual');
+    ctl.setTarget(60, 0);
+    ctl.setTarget(200, 0.01); // clamped to maxAngle
+    ctl.setTarget(45, 0.02);
+    let prev = 0;
+    let maxRate = 0;
+    for (let t = 0.005; t < 3; t += 0.005) {
+      const a = (ctl.advance(t, 0.005, 0) * 180) / Math.PI;
+      maxRate = Math.max(maxRate, Math.abs(a - prev) / 0.005);
+      prev = a;
+    }
+    expect(prev).toBeCloseTo(45, 1);
+    expect(maxRate).toBeLessThanOrEqual(90 + 1e-6);
+    expect(ctl.inputs.map((i) => i.targetDeg)).toEqual([60, 90, 45]);
+    expect(ctl.advance(3, 0, 0)).toBeCloseTo((45 * Math.PI) / 180, 2); // dt = 0 keeps the angle
+  });
+
   it('repeated pours split the target', () => {
     const c = { ...defaultMotion(), repeats: 2 };
     expect(new PourController(c).pourTarget()).toBeCloseTo(c.targetVolume / 2);

@@ -7,7 +7,7 @@
 
 import type { MotionConfig } from './types';
 
-export type MotionPhase = 'wait' | 'tilt-in' | 'hold' | 'return' | 'rest' | 'done';
+export type MotionPhase = 'wait' | 'tilt-in' | 'hold' | 'return' | 'rest' | 'done' | 'manual';
 
 const DEG = Math.PI / 180;
 
@@ -31,10 +31,22 @@ export class PourController {
   private flowRate = 0;
   private lastDischarged = 0;
   readonly events: MotionEvent[] = [];
+  /** Manual mode: every user input as (simulated time, requested angle in degrees). */
+  readonly inputs: { time: number; targetDeg: number }[] = [];
+  private target = 0;
+  private manualRate = 0;
+
+  /** Manual mode: request a tilt angle (degrees, clamped to 0..maxAngle). */
+  setTarget(angleDeg: number, time: number): void {
+    const a = Math.max(0, Math.min(this.cfg.maxAngleDeg, angleDeg));
+    this.target = a * DEG;
+    this.inputs.push({ time, targetDeg: a });
+  }
 
   constructor(cfg: MotionConfig) {
     this.cfg = cfg;
     if (cfg.kind === 'still') this.phase = 'done';
+    if (cfg.kind === 'manual') this.phase = 'manual';
   }
 
   /** Target cumulative discharge for the current pour. */
@@ -68,6 +80,18 @@ export class PourController {
     }
     this.lastDischarged = discharged;
     const prev = this.angle;
+    if (this.phase === 'manual') {
+      // Follow the requested angle like a hand would: first-order lag (0.15 s) with bounded
+      // angular acceleration and a 90 deg/s rate limit, so the walls never jump.
+      if (dt > 0) {
+        const desired = Math.max(-90 * DEG, Math.min(90 * DEG, (this.target - this.angle) / 0.15));
+        const maxChange = 600 * DEG * dt;
+        this.manualRate += Math.max(-maxChange, Math.min(maxChange, desired - this.manualRate));
+        this.angle += this.manualRate * dt;
+        this.lastRate = (this.angle - prev) / dt;
+      }
+      return this.angle;
+    }
     const hold = c.holdAngleDeg * DEG;
     const maxA = c.maxAngleDeg * DEG;
 

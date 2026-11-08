@@ -24,6 +24,7 @@ export const WATER_70C = {
 export const QUALITY_LADDER = [44, 64, 96] as const;
 
 export function defaultVessel(kind: VesselConfig['kind']): VesselConfig {
+  if (kind === 'custom') return vesselFromProfile(defaultProfile());
   if (kind === 'glass') {
     // German-style glass teapot: a wide glass cylinder, flat bottom with a small radius,
     // no spout - a short lip at the rim. Liquid can only leave over the top.
@@ -60,6 +61,101 @@ export function defaultVessel(kind: VesselConfig['kind']): VesselConfig {
 /** Fill height (m) that represents the 1.5 L reference fill in each vessel model. */
 export function referenceFillHeight(kind: VesselConfig['kind']): number {
   return kind === 'glass' ? 0.085 : 0.1;
+}
+
+export const VESSEL_KINDS: VesselConfig['kind'][] = ['teapot', 'glass', 'pitcher', 'tank', 'custom'];
+
+/** Highest fill level (m above the inner floor) that does not overflow at rest. */
+export function maxFillHeight(v: VesselConfig): number {
+  if (v.kind === 'teapot') {
+    const pl = buildVessel(v).polylines[0];
+    return pl[pl.length - 1][1] - 0.005; // lower spout lip tip
+  }
+  if (v.kind === 'custom' && v.profile) {
+    const p = v.profile;
+    return Math.min(p[0][1], p[p.length - 1][1]) - v.wall / 2 - 0.005;
+  }
+  return v.innerHeight - 0.005;
+}
+
+/** Largest fill (mL, multiple of 50) the vessel holds without overflowing at rest. */
+export function maxFillMl(v: VesselConfig): number {
+  // The tolerance keeps 1199.999... (floating point) from rounding down a whole step.
+  return Math.floor(((maxFillHeight(v) / referenceFillHeight(v.kind)) * 1500) / 50 + 1e-9) * 50;
+}
+
+/** Lower fill and target so they fit the chosen vessel; returns the adjusted settings and whether anything changed. */
+export function fitFillToVessel(
+  s: UserSettings,
+  v: VesselConfig,
+): { settings: UserSettings; changed: boolean } {
+  const max = maxFillMl(v);
+  if (s.fillMl <= max) return { settings: s, changed: false };
+  const fillMl = Math.max(LIMITS.fillMl.min, max);
+  const targetMl = Math.min(s.targetMl, Math.floor((fillMl * 0.5) / 25) * 25);
+  return { settings: { ...s, fillMl, targetMl }, changed: true };
+}
+
+/** Drawn outline as "x,y;x,y;..." in whole millimetres (URL friendly). */
+export function shapeToString(pts: [number, number][]): string {
+  return pts.map(([x, y]) => `${Math.round(x * 1000)},${Math.round(y * 1000)}`).join(';');
+}
+
+export function parseShape(s: string): [number, number][] | null {
+  if (!s) return null;
+  const pts: [number, number][] = [];
+  for (const part of s.split(';')) {
+    const [a, b] = part.split(',').map(Number);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    pts.push([a / 1000, b / 1000]);
+  }
+  return pts;
+}
+
+/** Problems with a drawn outline (empty when usable). Coordinates in metres, any origin. */
+export function validateProfile(pts: [number, number][]): string[] {
+  const errs: string[] = [];
+  if (pts.length < 3 || pts.length > 24) errs.push('A drawn pot needs 3 to 24 wall points.');
+  if (pts.length < 2) return errs;
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const w = Math.max(...xs) - Math.min(...xs);
+  const h = Math.max(...ys) - Math.min(...ys);
+  if (w < 0.06 || w > 0.32) errs.push('The pot must be 6 to 32 cm wide.');
+  if (h < 0.05 || h > 0.25) errs.push('The pot must be 5 to 25 cm high.');
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  if (last[0] <= first[0]) errs.push('Draw from the back rim (left) round to the pouring lip (right).');
+  const minY = Math.min(...ys);
+  if (first[1] - minY < 0.04 || last[1] - minY < 0.04)
+    errs.push('Both the back rim and the lip must be at least 4 cm above the bottom.');
+  return errs;
+}
+
+/**
+ * Turn a drawn outline into a vessel: the outline becomes the wall centreline, shifted so the
+ * inner floor is at y = 0 and the inner back wall at x = 0.
+ */
+export function vesselFromProfile(pts: [number, number][]): VesselConfig {
+  const wall = 0.01;
+  const minX = Math.min(...pts.map((p) => p[0]));
+  const minY = Math.min(...pts.map((p) => p[1]));
+  const profile = pts.map(([x, y]) => [x - minX - wall / 2, y - minY - wall / 2] as [number, number]);
+  const maxX = Math.max(...profile.map((p) => p[0]));
+  const maxY = Math.max(...profile.map((p) => p[1]));
+  return {
+    ...defaultVessel('glass'),
+    kind: 'custom',
+    innerWidth: maxX - wall / 2,
+    innerHeight: maxY,
+    wall,
+    profile,
+  };
+}
+
+/** Starting outline for the shape editor: the German glass teapot's wall centreline. */
+export function defaultProfile(): [number, number][] {
+  return buildVessel(defaultVessel('glass')).polylines[0].map(([x, y]) => [x, y] as [number, number]);
 }
 
 export function defaultMotion(): MotionConfig {
@@ -336,6 +432,12 @@ export function presetById(id: string): PresetInfo {
 /** User-adjustable settings exposed in the UI and URL. Units are user-facing (mL, s, deg, degC). */
 export interface UserSettings {
   preset: string;
+  /** Particles per cell per axis: 2, 3 or 4 (4, 9 or 16 parcels per cell). */
+  ppc: number;
+  /** 'manual': the user tilts the pot with a slider instead of the automated pour. */
+  control: 'auto' | 'manual';
+  /** Drawn pot outline for vessel 'custom' (see shapeToString); empty otherwise. */
+  shape: string;
   fillMl: number;
   targetMl: number;
   tiltDuration: number;
@@ -356,6 +458,9 @@ export interface UserSettings {
 export function settingsFromConfig(c: ExperimentConfig): UserSettings {
   return {
     preset: c.presetId,
+    ppc: c.particlesPerCellAxis,
+    control: c.motion.kind === 'manual' ? 'manual' : 'auto',
+    shape: c.vessel.kind === 'custom' && c.vessel.profile ? shapeToString(c.vessel.profile) : '',
     fillMl: Math.round(c.initialVolume / ML),
     targetMl: Math.round(c.motion.targetVolume / ML),
     tiltDuration: c.motion.tiltDuration,
@@ -396,7 +501,7 @@ export const LIMITS: Record<
   | 'seed',
   SettingLimit
 > = {
-  fillMl: { min: 800, max: 1800, label: 'Fill', unit: 'mL', step: 50 },
+  fillMl: { min: 200, max: 3000, label: 'Fill', unit: 'mL', step: 50 },
   targetMl: { min: 0, max: 900, label: 'Target discharge', unit: 'mL', step: 25 },
   tiltDuration: { min: 0.3, max: 5, label: 'Tilt-in duration', unit: 's', step: 0.1 },
   holdAngle: { min: 2, max: 80, label: 'Hold angle', unit: 'deg', step: 1 },
@@ -421,7 +526,20 @@ export function validateSettings(s: UserSettings): string[] {
   }
   if (!(QUALITY_LADDER as readonly number[]).includes(s.quality))
     errs.push(`Resolution must be one of ${QUALITY_LADDER.join(', ')}.`);
-  if (!['tank', 'pitcher', 'teapot', 'glass'].includes(s.vessel)) errs.push('Unknown vessel.');
+  if (!VESSEL_KINDS.includes(s.vessel)) errs.push('Unknown vessel.');
+  if (![2, 3, 4].includes(s.ppc)) errs.push('Particles per cell must be 4, 9 or 16.');
+  if (s.control !== 'auto' && s.control !== 'manual') errs.push('Unknown control mode.');
+  let vessel: VesselConfig | null = null;
+  if (s.vessel === 'custom') {
+    const pts = parseShape(s.shape);
+    const shapeErrs = pts ? validateProfile(pts) : ['The drawn pot outline could not be read.'];
+    errs.push(...shapeErrs);
+    if (pts && shapeErrs.length === 0) vessel = vesselFromProfile(pts);
+  } else if (VESSEL_KINDS.includes(s.vessel)) vessel = defaultVessel(s.vessel);
+  if (vessel && Number.isFinite(s.fillMl)) {
+    const maxMl = maxFillMl(vessel);
+    if (s.fillMl > maxMl) errs.push(`This pot overflows above ${maxMl} mL: lower the fill.`);
+  }
   if (!['flip', 'apic'].includes(s.transfer)) errs.push('Unknown transfer scheme.');
   if (!['off', 'passive', 'coupled'].includes(s.thermal)) errs.push('Unknown thermal mode.');
   if (Number.isFinite(s.targetMl) && Number.isFinite(s.fillMl) && s.targetMl >= s.fillMl)
@@ -432,9 +550,19 @@ export function validateSettings(s: UserSettings): string[] {
 /** Apply user settings on top of the chosen preset. Geometry changes refit the domain. */
 export function configFromSettings(s: UserSettings): ExperimentConfig {
   const c = presetById(s.preset).build();
-  if (s.vessel !== c.vessel.kind) {
+  if (s.vessel === 'custom') {
+    c.vessel = vesselFromProfile(parseShape(s.shape) ?? defaultProfile());
+    c.pivotLocal = [c.vessel.innerWidth / 2, 0.06];
+    c.motion.anticipation = 0.2;
+  } else if (s.vessel !== c.vessel.kind) {
     c.vessel = defaultVessel(s.vessel);
     c.pivotLocal = [c.vessel.innerWidth / 2, 0.06];
+  }
+  c.particlesPerCellAxis = s.ppc;
+  if (s.control === 'manual') {
+    c.motion.kind = 'manual';
+    c.motion.targetVolume = 0;
+    c.motion.maxAngleDeg = 90;
   }
   // Fill height scales with requested volume relative to the 1.5 L reference fill.
   c.fillHeight = referenceFillHeight(c.vessel.kind) * (s.fillMl / 1500);
@@ -459,6 +587,7 @@ export function configFromSettings(s: UserSettings): ExperimentConfig {
 }
 
 const NUM_KEYS: (keyof UserSettings)[] = [
+  'ppc',
   'fillMl',
   'targetMl',
   'tiltDuration',
@@ -489,9 +618,12 @@ export function settingsFromQuery(q: string): UserSettings {
     if (raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw)))
       (out as unknown as Record<string, number>)[k] = Number(raw);
   }
-  const vessel = p.get('vessel');
-  if (vessel === 'tank' || vessel === 'pitcher' || vessel === 'teapot' || vessel === 'glass')
-    out.vessel = vessel;
+  const vessel = p.get('vessel') as VesselConfig['kind'] | null;
+  if (vessel && VESSEL_KINDS.includes(vessel)) out.vessel = vessel;
+  const control = p.get('control');
+  if (control === 'auto' || control === 'manual') out.control = control;
+  const shape = p.get('shape');
+  if (shape !== null) out.shape = shape;
   const transfer = p.get('transfer');
   if (transfer === 'flip' || transfer === 'apic') out.transfer = transfer;
   const thermal = p.get('thermal');

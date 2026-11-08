@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Simulation } from '../src/sim/solver';
 import { STATUS_DISCHARGED, STATUS_IN_POT, STATUS_LOST } from '../src/sim/types';
 import { cfgFor } from './helpers';
+import { configFromSettings, settingsFromQuery } from '../src/sim/config';
 import { vesselSdf, worldToLocal } from '../src/sim/vessel';
 
 describe('solver: verification cases', () => {
@@ -134,6 +135,28 @@ describe('solver: verification cases', () => {
     for (const p of sim.dischargeOrder) byOrigin[sim.origin[p]]++;
     expect(byOrigin[0]).toBe(0);
     expect(byOrigin[2]).toBeGreaterThan(byOrigin[1]);
+  });
+
+  it('a drawn pot tilted by hand pours, and inputs are part of the record', () => {
+    const sim = new Simulation(
+      configFromSettings({
+        ...settingsFromQuery('preset=teapot-gentle'),
+        vessel: 'custom',
+        shape: '0,100;10,40;50,5;150,5;190,40;210,100',
+        control: 'manual',
+        fillMl: 900,
+      }),
+    );
+    sim.advance(0.3);
+    sim.setTiltTarget(50);
+    sim.advance(2.5);
+    sim.setTiltTarget(0);
+    sim.advance(1.5);
+    const d = sim.diagnostics();
+    expect(d.volumeDischarged).toBeGreaterThan(100e-6);
+    expect(d.volumeLost).toBe(0);
+    expect(sim.controller.inputs).toHaveLength(2);
+    expect(Math.abs(d.angleDeg)).toBeLessThan(1);
   });
 
   it('still control: nothing leaves the pot', () => {

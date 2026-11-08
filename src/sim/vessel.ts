@@ -35,6 +35,8 @@ export interface Vessel {
   outflow: OutflowSection | null;
   /** Local-space spout channel polygon (teapot) used for region classification. */
   spoutPolygon: [number, number][] | null;
+  /** Custom only: closed wall-centreline polygon; liquid is seeded inside it. */
+  cavity: [number, number][] | null;
   /** Bounding envelope in local coordinates; a parcel outside it that was not discharged is a spill. */
   envelope: { x0: number; x1: number; y0: number; y1: number };
   /** Precomputed far-field distance table (local frame, static because the vessel is rigid). */
@@ -134,7 +136,43 @@ export function buildVessel(c: VesselConfig): Vessel {
     y1: c.innerHeight + 1.0,
   };
 
-  if (c.kind === 'tank') {
+  let cavity: [number, number][] | null = null;
+  if (c.kind === 'custom') {
+    const pts = c.profile ?? [];
+    if (pts.length < 3) throw new Error('A drawn pot needs at least three wall points.');
+    polylines = [pts.map((p) => [p[0], p[1]] as [number, number])];
+    cavity = polylines[0];
+    const [ax, ay] = pts[pts.length - 2];
+    const [tx, ty] = pts[pts.length - 1];
+    const len = Math.hypot(tx - ax, ty - ay) || 1;
+    const ux = (tx - ax) / len;
+    const uy = (ty - ay) / len;
+    // Section through the lip tip, perpendicular to the last wall segment (like the pitcher lip).
+    const nx = -uy;
+    const ny = ux;
+    outflow = {
+      ax: tx - nx * 0.02,
+      ay: ty - ny * 0.02,
+      bx: tx + nx * 0.06,
+      by: ty + ny * 0.06,
+      nx: ux,
+      ny: uy,
+    };
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (const [x, y] of pts) {
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+    envelope.x0 = x0 - c.wall * 2;
+    envelope.x1 = x1 + c.wall * 2;
+    envelope.y0 = y0 - c.wall * 2;
+    envelope.y1 = y1 + 1.0;
+  } else if (c.kind === 'tank') {
     polylines = [bodyPath(c, c.innerHeight)];
   } else if (c.kind === 'pitcher' || c.kind === 'glass') {
     // Rim lip: the right wall continues past the rim into a short lip ("Ausgiesser").
@@ -216,6 +254,7 @@ export function buildVessel(c: VesselConfig): Vessel {
     halfWall: hw,
     outflow,
     spoutPolygon,
+    cavity,
     envelope,
     cache: null,
   };

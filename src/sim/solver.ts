@@ -316,7 +316,8 @@ export class Simulation {
         const lx = loc[0];
         const ly = loc[1];
         if (ly < 0 || ly > cfg.fillHeight) continue;
-        const inBody = lx >= 0 && lx <= vc.innerWidth;
+        const cav = this.vessel.cavity;
+        const inBody = cav ? pointInPolygon(cav, lx, ly) : lx >= 0 && lx <= vc.innerWidth;
         const inSpout = !inBody && sp !== null && pointInPolygon(sp, lx, ly);
         if (!inBody && !inSpout) continue;
         if (vesselSdf(this.vessel, lx, ly) < margin) continue;
@@ -327,6 +328,11 @@ export class Simulation {
   }
 
   // ---------------------------------------------------------------- public API
+
+  /** Manual mode: set the tilt the user is asking for (degrees); recorded with the simulated time. */
+  setTiltTarget(angleDeg: number): void {
+    this.controller.setTarget(angleDeg, this.time);
+  }
 
   /** Advance by a duration of simulated time using adaptive substeps. */
   advance(duration: number): Diagnostics {

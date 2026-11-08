@@ -18,7 +18,7 @@ export const STATUS_LOST = 3;
 export type TransferScheme = 'flip' | 'apic';
 export type WallTreatment = 'free-slip';
 export type ThermalMode = 'off' | 'passive' | 'coupled';
-export type VesselKind = 'tank' | 'pitcher' | 'teapot' | 'glass';
+export type VesselKind = 'tank' | 'pitcher' | 'teapot' | 'glass' | 'custom';
 
 /** Vessel geometry, all lengths in metres, in pot-local coordinates (y up, pivot at local origin offset). */
 export interface VesselConfig {
@@ -43,11 +43,17 @@ export interface VesselConfig {
   lipLength: number;
   /** Pitcher/glass: rise of the lip tip above the rim as a fraction of lipLength. */
   lipRise: number;
+  /**
+   * Custom only: wall centreline drawn by the user (local metres), from the top of the back wall,
+   * down around the bottom, up the front wall and ending at the pouring lip tip.
+   */
+  profile?: [number, number][];
 }
 
 /** Prescribed vessel motion: smooth tilt-in, hold, controlled return. Angles in degrees, positive = toward spout. */
 export interface MotionConfig {
-  kind: 'still' | 'pour' | 'tilt';
+  /** 'manual': the user tilts the pot live; inputs are recorded. */
+  kind: 'still' | 'pour' | 'tilt' | 'manual';
   /** Wait before tilting starts. */
   startDelay: number;
   /** Duration of the eased tilt-in. */
