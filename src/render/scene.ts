@@ -210,7 +210,15 @@ export function drawPathlines(
   paths: number[][],
   theme: Theme,
   status?: Uint8Array,
+  angleDeg = 0,
 ): void {
+  // Trails are stored in pot coordinates and drawn with the pot's current pose.
+  const pose = makePose((-angleDeg * Math.PI) / 180, 0, info.config.pivotLocal, info.config.pivotWorld);
+  const w = new Float64Array(2);
+  const at = (lx: number, ly: number): [number, number] => {
+    localToWorld(pose, lx, ly, w);
+    return toScreen(v, w[0], w[1]);
+  };
   ctx.save();
   ctx.lineWidth = 1.5;
   ctx.globalAlpha = 0.9;
@@ -220,13 +228,13 @@ export function drawPathlines(
     ctx.strokeStyle = theme.origins[k % theme.origins.length];
     ctx.beginPath();
     for (let i = 0; i < pts.length; i += 2) {
-      const [sx, sy] = toScreen(v, pts[i], pts[i + 1]);
+      const [sx, sy] = at(pts[i], pts[i + 1]);
       if (i === 0) ctx.moveTo(sx, sy);
       else ctx.lineTo(sx, sy);
     }
     ctx.stroke();
     // End marker: solid dot = where the parcel is now; hollow ring = where it left through the lip.
-    const [ex, ey] = toScreen(v, pts[pts.length - 2], pts[pts.length - 1]);
+    const [ex, ey] = at(pts[pts.length - 2], pts[pts.length - 1]);
     const poured = status !== undefined && status[info.pathlineParticles[idx]] === STATUS_DISCHARGED;
     ctx.beginPath();
     ctx.arc(ex, ey, poured ? 3.5 : 2.5, 0, Math.PI * 2);

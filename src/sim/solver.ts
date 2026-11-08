@@ -63,7 +63,7 @@ export interface HistoryRow {
 export interface Pathline {
   particle: number;
   origin: number;
-  points: number[]; // world x,y pairs
+  points: number[]; // pot-local x,y pairs
 }
 
 const SQRT5 = Math.sqrt(5);
@@ -1217,7 +1217,9 @@ export class Simulation {
       for (const pl of this.pathlines) {
         if (pl.points.length >= PATHLINE_POINTS * 2) continue;
         if (this.status[pl.particle] !== STATUS_IN_POT && pl.points.length > 0) continue;
-        pl.points.push(this.x[pl.particle], this.y[pl.particle]);
+        // Pot-local coordinates: trails move with the pot and show where a parcel went inside it.
+        worldToLocal(this.pose, this.x[pl.particle], this.y[pl.particle], this.scratch);
+        pl.points.push(this.scratch[0], this.scratch[1]);
       }
       this.nextPath = this.time + 1 / 30;
     }

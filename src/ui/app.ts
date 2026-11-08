@@ -38,6 +38,7 @@ import {
 } from '../render/scene';
 import { chartBox, drawBiasChart, drawBinsChart, drawTimeSeries } from '../render/charts';
 import { ShapeEditor } from './shapeEditor';
+import { CONTROL_HELP, SETTING_HELP } from './help';
 
 export interface WorkerLike {
   postMessage(msg: ToWorker): void;
@@ -80,7 +81,7 @@ export interface RunSummary {
 
 const MAX_STORED_FRAMES = 900;
 
-/** "Change the spout" cycles through the pot models: spout teapot -> glass pot -> pitcher. */
+/** "Change the pot" cycles through the pot models: spout teapot -> glass pot -> pitcher. */
 const NEXT_POT: Record<string, string> = {
   teapot: 'glass-gentle',
   glass: 'pitcher-gentle',
@@ -122,6 +123,7 @@ export class App {
   start(): void {
     this.el('version').textContent = `v${this.d.version}`;
     this.buildSettingsForm();
+    this.applyHelp();
     this.bindControls();
     this.editor = new ShapeEditor(
       this.d.doc,
@@ -147,6 +149,20 @@ export class App {
   }
 
   // ------------------------------------------------------------ settings
+
+  /** Tooltips: what each control is and what it influences (title + aria-description). */
+  applyHelp(): void {
+    const set = (el: HTMLElement | null, text: string) => {
+      if (!el) return;
+      el.title = text;
+      el.setAttribute('aria-description', text);
+      // The surrounding label shows the same tooltip when hovering its text.
+      if (el.parentElement?.tagName === 'LABEL') el.parentElement.title = text;
+    };
+    for (const [id, text] of Object.entries(CONTROL_HELP)) set(this.d.doc.getElementById(id), text);
+    for (const [key, text] of Object.entries(SETTING_HELP))
+      set(this.d.doc.getElementById(`set-${key}`), text);
+  }
 
   private numberField(container: HTMLElement, key: keyof typeof LIMITS): void {
     const lim = LIMITS[key];
@@ -216,7 +232,10 @@ export class App {
       n,
       'quality',
       'Resolution (cells across body)',
-      QUALITY_LADDER.map((q) => [String(q), `${q}${q === 44 ? ' (fast)' : q === 96 ? ' (slow)' : ''}`]),
+      QUALITY_LADDER.map((q) => [
+        String(q),
+        `${q}${q === 44 ? ' (fast)' : q === 96 ? ' (slow)' : q === 128 ? ' (finest, very slow)' : ''}`,
+      ]),
     );
     this.selectField(n, 'ppc', 'Particles per cell', [
       ['2', '4 per cell (fast)'],
@@ -580,7 +599,7 @@ export class App {
     const li = this.d.doc.createElement('li');
     li.className = 'legend-note';
     li.textContent =
-      'Pathlines: trails of 30 sample parcels since the start. Solid dot = where the parcel is now; hollow ring = where it left through the lip. The dashed line is the lip section that counts poured liquid.';
+      'Pathlines: trails of 30 sample parcels since the start, drawn relative to the pot (they move with it). Solid dot = where the parcel is now; hollow ring = where it left through the lip. The dashed line is the lip section that counts poured liquid.';
     ul.appendChild(li);
   }
 
@@ -634,7 +653,7 @@ export class App {
     ];
     drawParcels(ctx, vp, info, shown, opts, theme, tr);
     if (opts.pathlines && this.metrics && !frame)
-      drawPathlines(ctx, vp, info, this.metrics.pathlines, theme, shown.status);
+      drawPathlines(ctx, vp, info, this.metrics.pathlines, theme, shown.status, angle);
     if (opts.arrows && !frame) drawArrows(ctx, vp, this.arrows, theme);
     const byOrigin = this.metrics ? this.metrics.composition.dischargedByOrigin : [0, 0, 0];
     const cap = Math.max(info.config.motion.targetVolume * 1.4, 500e-6);

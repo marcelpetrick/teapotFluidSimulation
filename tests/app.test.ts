@@ -85,6 +85,13 @@ describe('App (integration with the real simulation host)', () => {
     expect($('status').textContent).toMatch(/Reduced motion/);
     expect($('legend').children).toHaveLength(4);
     expect($('legend').textContent).toMatch(/hollow ring/);
+    // Every control and every settings field has an explanatory tooltip.
+    expect($('pour').title).toMatch(/Start the experiment/);
+    expect($('set-ppc').title).toMatch(/parcels per grid cell/);
+    expect($('set-ppc').parentElement!.title).toBe($('set-ppc').title);
+    expect($('set-quality').getAttribute('aria-description')).toMatch(/Resolution/);
+    for (const el of Array.from(document.querySelectorAll('button, select, input')))
+      expect((el as HTMLElement).title, (el as HTMLElement).id).not.toBe('');
     expect($('limits').children.length).toBeGreaterThan(5);
     expect($('pour').textContent).toBe('Tilt and return');
     expect(($('preset') as HTMLSelectElement).value).toBe('tank-tilt');

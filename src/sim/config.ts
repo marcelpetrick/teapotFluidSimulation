@@ -21,7 +21,7 @@ export const WATER_70C = {
   thermalExpansion: 5.84e-4, // K^-1
 };
 
-export const QUALITY_LADDER = [44, 64, 96] as const;
+export const QUALITY_LADDER = [44, 64, 96, 128] as const;
 
 export function defaultVessel(kind: VesselConfig['kind']): VesselConfig {
   if (kind === 'custom') return vesselFromProfile(defaultProfile());
