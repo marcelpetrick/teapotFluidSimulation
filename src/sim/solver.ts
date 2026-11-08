@@ -337,11 +337,14 @@ export class Simulation {
   /** Advance by a duration of simulated time using adaptive substeps. */
   advance(duration: number): Diagnostics {
     const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    // Whole stable substeps only (clipped solely at the experiment's end), so the substep sequence
+    // and therefore the result do not depend on how callers chunk simulated time. The last
+    // substep may overshoot `duration` by less than one substep.
     const end = this.time + duration;
     let sub = 0;
     this.pressureItersMaxAdvance = 0;
-    while (this.time < end - 1e-12) {
-      const dt = Math.min(this.stableDt(), end - this.time);
+    while (this.time < end - 1e-12 && !this.finished) {
+      const dt = Math.min(this.stableDt(), this.cfg.duration - this.time);
       this.step(dt);
       sub++;
     }
@@ -501,6 +504,10 @@ export class Simulation {
   }
 
   private w6 = new Float64Array(6);
+  // Reusable scratch for allocation-free inner loops.
+  private ws4 = new Float64Array(4);
+  private cs4 = new Int32Array(4);
+  private nb4 = new Int32Array(4);
 
   /** Plain bilinear sample of a u-like field. */
   sampleU(field: Float64Array, x: number, y: number): number {
@@ -605,8 +612,16 @@ export class Simulation {
       const fy = Math.max(0, Math.min(1, gy - j));
       const c = i + j * nx;
       const T = this.temperature[p];
-      const ws = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
-      const cs = [c, c + 1, c + nx, c + nx + 1];
+      const ws = this.ws4;
+      const cs = this.cs4;
+      ws[0] = (1 - fx) * (1 - fy);
+      ws[1] = fx * (1 - fy);
+      ws[2] = (1 - fx) * fy;
+      ws[3] = fx * fy;
+      cs[0] = c;
+      cs[1] = c + 1;
+      cs[2] = c + nx;
+      cs[3] = c + nx + 1;
       for (let k = 0; k < 4; k++) {
         cellT[cs[k]] += ws[k] * T;
         cellTw[cs[k]] += ws[k];
@@ -1140,7 +1155,11 @@ export class Simulation {
         if (cell[c] !== CELL_FLUID) continue;
         const T = cellT[c];
         let dT = 0;
-        const nbs = [c - 1, c + 1, c - nx, c + nx];
+        const nbs = this.nb4;
+        nbs[0] = c - 1;
+        nbs[1] = c + 1;
+        nbs[2] = c - nx;
+        nbs[3] = c + nx;
         for (let k = 0; k < 4; k++) {
           const d = nbs[k];
           if (cell[d] === CELL_FLUID) dT += kd * (cellT[d] - T);
@@ -1170,8 +1189,16 @@ export class Simulation {
       const fx = Math.max(0, Math.min(1, gx - i));
       const fy = Math.max(0, Math.min(1, gy - j));
       const c = i + j * nx;
-      const ws = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
-      const cs = [c, c + 1, c + nx, c + nx + 1];
+      const ws = this.ws4;
+      const cs = this.cs4;
+      ws[0] = (1 - fx) * (1 - fy);
+      ws[1] = fx * (1 - fy);
+      ws[2] = (1 - fx) * fy;
+      ws[3] = fx * fy;
+      cs[0] = c;
+      cs[1] = c + 1;
+      cs[2] = c + nx;
+      cs[3] = c + nx + 1;
       let acc = 0;
       let wsum = 0;
       for (let k = 0; k < 4; k++) {

@@ -39,7 +39,8 @@ describe('solver: verification cases', () => {
     }
     const y0 = Float64Array.from(sim.y);
     sim.advance(0.1);
-    const errs = Array.from({ length: sim.n }, (_, p) => Math.abs(sim.y[p] - y0[p] - 0.005)).sort(
+    const shift = 0.05 * sim.time; // advance() ends on a whole substep (time >= 0.1 s)
+    const errs = Array.from({ length: sim.n }, (_, p) => Math.abs(sim.y[p] - y0[p] - shift)).sort(
       (a, b) => a - b,
     );
     // Bulk transport is exact to micrometres. Parcels in the stair-stepped wall layer
@@ -48,6 +49,26 @@ describe('solver: verification cases', () => {
     const affected = errs.filter((e) => e > 2e-4).length / sim.n;
     // At most one wall-adjacent cell column on each side: 2 / 44 columns ~ 4.5 %.
     expect(affected).toBeLessThan(2 / 44);
+  });
+
+  it('results do not depend on how simulated time is chunked (browser pumping)', () => {
+    // Reference: one stable substep at a time. Chunked runs must reproduce it exactly.
+    const reference = (steps: number) => {
+      const r = new Simulation(cfgFor('teapot-gentle'));
+      while (r.steps < steps) r.step(Math.min(r.stableDt(), r.cfg.duration - r.time));
+      return r;
+    };
+    const a = new Simulation(cfgFor('teapot-gentle'));
+    for (let k = 0; k < 40; k++) a.advance(0.0137);
+    const b = new Simulation(cfgFor('teapot-gentle'));
+    b.advance(0.25);
+    b.advance(0.4);
+    for (const s of [a, b]) {
+      const r = reference(s.steps);
+      expect(s.time).toBe(r.time);
+      expect(Array.from(s.x)).toEqual(Array.from(r.x));
+      expect(Array.from(s.status)).toEqual(Array.from(r.status));
+    }
   });
 
   it('is deterministic for a seed and changes with the seed', () => {

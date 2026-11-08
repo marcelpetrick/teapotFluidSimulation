@@ -80,6 +80,8 @@ export interface RunSummary {
 }
 
 const MAX_STORED_FRAMES = 900;
+/** Memory budget for stored timeline frames (bytes); high resolutions keep fewer frames. */
+const FRAME_STORE_BYTES = 150e6;
 
 /** "Change the pot" cycles through the pot models: spout teapot -> glass pot -> pitcher. */
 const NEXT_POT: Record<string, string> = {
@@ -277,6 +279,9 @@ export class App {
       if (!e) continue;
       rec[k] = typeof rec[k] === 'number' ? (e.value.trim() === '' ? NaN : Number(e.value)) : e.value;
     }
+    // "Drawn pot" chosen in the form without a stored outline: use the editor's current shape.
+    if (s.vessel === 'custom' && !parseShape(s.shape) && this.editor)
+      s.shape = shapeToString(this.editor.pts);
     return s;
   }
 
@@ -515,7 +520,9 @@ export class App {
   }
 
   private storeFrame(s: RenderSnapshot): void {
-    if (this.frames.length >= MAX_STORED_FRAMES) {
+    const bytesPerFrame = s.positions.byteLength + s.status.byteLength;
+    const cap = Math.max(30, Math.min(MAX_STORED_FRAMES, Math.floor(FRAME_STORE_BYTES / bytesPerFrame)));
+    if (this.frames.length >= cap) {
       // Thin the history by half to stay bounded while keeping the whole run scrubbable.
       this.frames = this.frames.filter((_, i) => i % 2 === 0);
     }

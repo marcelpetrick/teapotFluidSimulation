@@ -233,9 +233,8 @@ export class PressureSolver {
       while (head < tail) {
         const c = queue[head++];
         sum += b[c];
-        const nb = [c - 1, c + 1, c - nx, c + nx];
         for (let t = 0; t < 4; t++) {
-          const d = nb[t];
+          const d = t === 0 ? c - 1 : t === 1 ? c + 1 : t === 2 ? c - nx : c + nx;
           if (cell[d] === CELL_AIR) touchesAir = true;
           else if (cell[d] === CELL_FLUID && comp[d] === -1) {
             comp[d] = label;

@@ -92,6 +92,10 @@ export class SimulationHost {
     if (msg.type === 'init') {
       this.sim = new Simulation(msg.config);
       this.running = false;
+      this.failure = null;
+      this.debt = 0;
+      this.lastPump = -1;
+      this.realtime = 1;
       const s = this.sim;
       const info: StaticInfo = {
         config: s.cfg,
@@ -187,10 +191,12 @@ export class SimulationHost {
     let done = 0;
     try {
       while (this.debt > 1e-9 && clock() - t0 < budgetMs && !s.finished) {
-        const dt = Math.min(this.debt, 1 / 120, s.cfg.duration - s.time);
-        s.advance(dt);
-        this.debt -= dt;
-        done += dt;
+        // advance() completes whole substeps, so book the time that actually elapsed.
+        const before = s.time;
+        s.advance(Math.min(this.debt, 1 / 120));
+        const elapsed = s.time - before;
+        this.debt -= elapsed;
+        done += elapsed;
       }
     } catch (e) {
       // Reported on the next frame request.

@@ -253,6 +253,13 @@ describe('App (integration with the real simulation host)', () => {
     expect(t.worker.sent.some((m) => m.type === 'tilt' && m.angleDeg === 40)).toBe(true);
     for (let k = 0; k < 15; k++) await t.tick(100);
     expect(t.app.diagnostics!.angleDeg).toBeGreaterThan(20);
+    // Choosing "Drawn pot" in the form without a stored outline uses the editor's shape.
+    ($('set-vessel') as HTMLSelectElement).value = 'custom';
+    ($('set-fillMl') as HTMLInputElement).value = '900';
+    $('settings').dispatchEvent(new Event('submit', { cancelable: true }));
+    await t.settle();
+    expect($('errors').textContent).toBe('');
+    expect(t.app.info?.config.vessel.kind).toBe('custom');
     // Shape editor: switch to the bowl template and use it.
     $('shape-bowl').click();
     $('shapeUse').click();
@@ -291,5 +298,19 @@ describe('App (integration with the real simulation host)', () => {
       });
     expect(t.app.frames.length).toBeLessThanOrEqual(900);
     expect($('status').textContent).toMatch(/computing at 50%/);
+    // Large frames: the store is bounded by memory, not only by count.
+    const huge = { ...snap, positions: new Float32Array(2_000_000), status: new Uint8Array(1_000_000) };
+    for (let k = 0; k < 40; k++)
+      t.app.onMessage({
+        type: 'frame',
+        snapshot: { ...huge, time: 1000 + k },
+        diagnostics: t.app.diagnostics!,
+        metrics: null,
+        arrows: new Float32Array(0),
+        running: true,
+        finished: false,
+        realtimeFactor: 1,
+      });
+    expect(t.app.frames.length).toBeLessThanOrEqual(30);
   });
 });
