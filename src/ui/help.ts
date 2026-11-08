@@ -7,6 +7,9 @@
 /** Help for static page controls, by element id. */
 export const CONTROL_HELP: Record<string, string> = {
   skin: 'Switch the look: clean lab, or cyber neon with glass panels and glowing liquid. Remembered in this browser.',
+  'mode-auto': 'Follow the light or dark setting of your system.',
+  'mode-light': 'Always use the light colours (lab look).',
+  'mode-dark': 'Always use the dark colours (lab look). Cyber neon is always dark.',
   soundToggle:
     'Turn the generated soundscape on or off: a calm space ambience, plus a pouring sound whose loudness follows how much tea is flowing.',
   volume: 'Overall sound volume.',

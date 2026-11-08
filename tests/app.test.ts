@@ -281,6 +281,26 @@ describe('App (integration with the real simulation host)', () => {
     expect(t.app.editor!.pts.length).toBeGreaterThan(3);
   });
 
+  it('light, dark and auto modes switch, are remembered, and are disabled in cyber neon', async () => {
+    const t = setup('?preset=tank-rest', true, true, [['pourlab-mode', 'dark']]);
+    await t.settle();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect($('mode-dark').getAttribute('aria-pressed')).toBe('true');
+    $('mode-light').click();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(t.prefs.get('pourlab-mode')).toBe('light');
+    $('mode-auto').click();
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    expect($('mode-auto').getAttribute('aria-pressed')).toBe('true');
+    const skin = $('skin') as HTMLSelectElement;
+    skin.value = 'cyber';
+    skin.dispatchEvent(new Event('change'));
+    expect(($('mode-light') as HTMLButtonElement).disabled).toBe(true);
+    skin.value = 'lab';
+    skin.dispatchEvent(new Event('change'));
+    expect(($('mode-light') as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('switches between the lab and cyber looks and remembers the choice', async () => {
     const t = setup('?preset=tank-rest', true, true, [['pourlab-skin', 'cyber']]);
     await t.settle();

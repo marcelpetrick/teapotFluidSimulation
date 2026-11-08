@@ -77,6 +77,10 @@ test('draw a pot in the editor, then tilt it by hand until liquid pours', async 
 test('cyber look is remembered across reloads and the soundscape switches on', async ({ page }) => {
   await page.goto('./?preset=tank-rest');
   await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });
+  await page.locator('#mode-dark').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.locator('#mode-light').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.locator('#skin').selectOption('cyber');
   await expect(page.locator('html')).toHaveAttribute('data-skin', 'cyber');
   await page.reload();

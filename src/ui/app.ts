@@ -134,6 +134,8 @@ export class App {
   start(): void {
     this.el('version').textContent = `v${this.d.version}`;
     this.buildSettingsForm();
+    const mode = this.d.prefs.get('pourlab-mode');
+    this.applyMode(mode === 'light' || mode === 'dark' ? mode : 'auto', false);
     this.applySkin(this.d.prefs.get('pourlab-skin') === 'cyber' ? 'cyber' : 'lab', false);
     this.applyHelp();
     this.bindControls();
@@ -168,7 +170,23 @@ export class App {
     if (skin === 'cyber') root.setAttribute('data-skin', 'cyber');
     else root.removeAttribute('data-skin');
     this.el<HTMLSelectElement>('skin').value = skin;
+    // Cyber neon is always dark: the light/dark buttons do not apply there.
+    for (const m of ['auto', 'light', 'dark'])
+      this.el<HTMLButtonElement>(`mode-${m}`).disabled = skin === 'cyber';
     if (remember) this.d.prefs.set('pourlab-skin', skin);
+    this.render();
+    this.updatePanels();
+    this.editor?.render();
+  }
+
+  /** Light, dark, or follow the system ('auto'). Remembered per viewer. */
+  applyMode(mode: 'auto' | 'light' | 'dark', remember = true): void {
+    const root = this.d.doc.documentElement;
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    for (const m of ['auto', 'light', 'dark'])
+      this.el(`mode-${m}`).setAttribute('aria-pressed', String(m === mode));
+    if (remember) this.d.prefs.set('pourlab-mode', mode);
     this.render();
     this.updatePanels();
     this.editor?.render();
@@ -397,6 +415,7 @@ export class App {
       this.applySkin((e.target as HTMLSelectElement).value === 'cyber' ? 'cyber' : 'lab'),
     );
     on('soundToggle', 'click', () => void this.toggleSound());
+    for (const m of ['auto', 'light', 'dark'] as const) on(`mode-${m}`, 'click', () => this.applyMode(m));
     on('volume', 'input', (e) => this.sound.setVolume(Number((e.target as HTMLInputElement).value) / 100));
     on('tiltSlider', 'input', (e) => {
       const deg = Number((e.target as HTMLInputElement).value);

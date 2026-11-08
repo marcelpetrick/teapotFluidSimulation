@@ -15,6 +15,7 @@
   --origin-1: #009e73;
   --origin-2: #d55e00;
   --error: #a3261b;
+  --on-accent: #ffffff;
   color-scheme: light;
 }
 
@@ -33,6 +34,7 @@
     --origin-1: #14a36c;
     --origin-2: #e86a2c;
     --error: #ff8a7a;
+    --on-accent: #0b1220;
     color-scheme: dark;
   }
 }
@@ -51,6 +53,7 @@
   --origin-1: #14a36c;
   --origin-2: #e86a2c;
   --error: #ff8a7a;
+  --on-accent: #0b1220;
   color-scheme: dark;
 }
 
@@ -167,7 +170,7 @@ button:hover {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 button:disabled {
   opacity: 0.5;
@@ -363,7 +366,7 @@ td:first-child {
 /* ---------------------------------------------------------------- Cyber neon skin
    Switchable look (header "Look" control): deep-space background with a faint grid,
    half-transparent glass panels, neon outlines and glow. Origin colours are validated for
-   colour-vision deficiencies on the dark surface (#3b7bff / #c47f00 / #d946ef). */
+   colour-vision deficiencies on the dark surface (#2e6bff / #28b030 / #b04bff). */
 :root[data-skin='cyber'] {
   --surface: rgba(7, 11, 22, 0.55);
   --panel: rgba(16, 24, 48, 0.55);
@@ -374,12 +377,12 @@ td:first-child {
   --dim: rgba(120, 150, 190, 0.28);
   --arrow: #7df9ff;
   --accent: #00e5ff;
-  --origin-0: #3b7bff;
-  --origin-1: #c47f00;
-  --origin-2: #d946ef;
+  --origin-0: #2e6bff;
+  --origin-1: #28b030;
+  --origin-2: #b04bff;
   --error: #ff7a9a;
   --neon: #00e5ff;
-  --neon-2: #d946ef;
+  --neon-2: #b04bff;
   color-scheme: dark;
 }
 
@@ -387,7 +390,7 @@ td:first-child {
   background-color: #04060d;
   background-image:
     radial-gradient(ellipse at 20% -10%, rgba(0, 229, 255, 0.18), transparent 55%),
-    radial-gradient(ellipse at 90% 110%, rgba(217, 70, 239, 0.16), transparent 55%),
+    radial-gradient(ellipse at 90% 110%, rgba(176, 75, 255, 0.16), transparent 55%),
     repeating-linear-gradient(0deg, rgba(0, 229, 255, 0.05) 0 1px, transparent 1px 40px),
     repeating-linear-gradient(90deg, rgba(0, 229, 255, 0.05) 0 1px, transparent 1px 40px);
   background-attachment: fixed;
@@ -435,7 +438,7 @@ td:first-child {
 }
 
 :root[data-skin='cyber'] button.primary {
-  background: linear-gradient(90deg, rgba(0, 229, 255, 0.85), rgba(217, 70, 239, 0.85));
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.85), rgba(176, 75, 255, 0.85));
   border-color: transparent;
   color: #02040a;
   font-weight: 600;
@@ -468,4 +471,22 @@ td:first-child {
   :root[data-skin='cyber'] body {
     background-attachment: scroll;
   }
+}
+
+.segmented {
+  display: inline-flex;
+}
+.segmented button {
+  border-radius: 0;
+}
+.segmented button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.segmented button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
 }
