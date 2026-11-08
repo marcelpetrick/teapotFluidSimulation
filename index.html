@@ -5,10 +5,195 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="PourLab: a browser fluid experiment showing where poured tea comes from and how much pouring mixes the pot."
+    />
     <title>PourLab</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 10h16v12a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z' fill='%230072B2'/%3E%3Cpath d='M22 14l7-5' stroke='%230072B2' stroke-width='3'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <h1>PourLab</h1>
-    <p>Where does poured tea come from? The simulation is under construction.</p>
+    <header class="top">
+      <div>
+        <h1>PourLab <span class="version" id="version"></span></h1>
+        <p class="question">
+          When you pour tea, which water leaves the pot, and does pouring stir what stays?
+        </p>
+      </div>
+      <nav class="links">
+        <a href="https://github.com/marcelpetrick/teapotFluidSimulation" rel="noopener">Source &amp; docs</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="stage" aria-label="Simulation">
+        <div class="toolbar" role="toolbar" aria-label="Playback">
+          <button id="pour" class="primary" type="button">Pour 400 mL</button>
+          <button id="play" type="button" aria-pressed="false">Play</button>
+          <button id="step" type="button">Step</button>
+          <button id="reset" type="button">Reset</button>
+          <label
+            >Playback
+            <select id="speed">
+              <option value="0.1">0.1x</option>
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+          <span id="status" class="status" role="status" aria-live="polite">Loading...</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas
+            id="scene"
+            width="900"
+            height="620"
+            aria-label="Pot cross-section with liquid parcels coloured by starting layer"
+          ></canvas>
+          <p id="prompt" class="prompt">Which layer reaches your cup first? Press <strong>Pour</strong>.</p>
+        </div>
+        <div class="timeline">
+          <label for="scrub">Timeline (stored frames; pause to scrub)</label>
+          <input id="scrub" type="range" min="0" max="0" value="0" disabled />
+          <span id="scrubTime">0.0 s</span>
+        </div>
+        <div class="view-controls" role="group" aria-label="View">
+          <label
+            >Colour
+            <select id="mode">
+              <option value="origin">Starting layer</option>
+              <option value="poured-map">Poured parcels only</option>
+              <option value="speed">Speed</option>
+              <option value="temperature">Temperature</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="pathlines" checked /> Pathlines</label>
+          <label><input type="checkbox" id="arrows" /> Velocity arrows</label>
+          <label><input type="checkbox" id="markers" /> Shape markers</label>
+          <label><input type="checkbox" id="diagToggle" /> Diagnostics</label>
+        </div>
+        <ul class="legend" id="legend" aria-label="Legend"></ul>
+      </section>
+
+      <aside class="results" aria-label="Results">
+        <h2>Answer so far</h2>
+        <ul id="summary" class="summary"></ul>
+        <div class="next" role="group" aria-label="Comparisons">
+          <button id="cmpStill" type="button">Compare with no pour</button>
+          <button id="cmpSlow" type="button">Try a slower pour</button>
+          <button id="cmpSpout" type="button">Change the spout</button>
+        </div>
+
+        <h3>Where did the poured liquid start?</h3>
+        <canvas
+          id="initialMap"
+          width="360"
+          height="230"
+          aria-label="Initial positions of parcels that were poured"
+        ></canvas>
+        <p class="hint">Initial pot: parcels that have left are coloured by layer; the rest are grey.</p>
+
+        <h3>Composition per 50 mL poured</h3>
+        <canvas
+          id="binsChart"
+          width="360"
+          height="150"
+          aria-label="Composition of each 50 mL of discharge"
+        ></canvas>
+        <h3>Over-representation B per layer</h3>
+        <canvas id="biasChart" width="360" height="150" aria-label="Bias ratio per starting layer"></canvas>
+        <h3>Discharged volume over time</h3>
+        <canvas
+          id="dischargeChart"
+          width="360"
+          height="130"
+          aria-label="Discharged volume over time"
+        ></canvas>
+        <h3>Tilt angle over time</h3>
+        <canvas id="angleChart" width="360" height="110" aria-label="Tilt angle over time"></canvas>
+
+        <details>
+          <summary>Data tables</summary>
+          <div id="tables"></div>
+        </details>
+        <details>
+          <summary>Run comparison</summary>
+          <div id="comparison"><p class="hint">Finished runs appear here.</p></div>
+        </details>
+        <div class="exports" role="group" aria-label="Export">
+          <button id="expPng" type="button">PNG</button>
+          <button id="expJson" type="button">JSON record</button>
+          <button id="expCsv" type="button">CSV metrics</button>
+        </div>
+      </aside>
+
+      <section class="settings" aria-label="Settings">
+        <h2>Experiment settings</h2>
+        <form id="settings" novalidate>
+          <label
+            >Preset
+            <select id="preset" name="preset"></select
+          ></label>
+          <p id="presetPurpose" class="hint"></p>
+          <div id="fields" class="fields"></div>
+          <details>
+            <summary>Numerics</summary>
+            <div id="numFields" class="fields"></div>
+          </details>
+          <details>
+            <summary>Thermal (Version 2)</summary>
+            <div id="thermalFields" class="fields"></div>
+          </details>
+          <p id="errors" class="errors" role="alert"></p>
+          <div class="row">
+            <button type="submit" class="primary">Apply &amp; reset</button>
+            <button type="button" id="share">Copy share link</button>
+          </div>
+          <p class="hint">Changing settings restarts the experiment. Settings are stored in the page URL.</p>
+        </form>
+        <details id="diagnostics">
+          <summary>Diagnostics</summary>
+          <dl id="diagList" class="diag"></dl>
+        </details>
+        <details open>
+          <summary>Model limits</summary>
+          <ul id="limits" class="limits"></ul>
+        </details>
+        <details>
+          <summary>How to read this</summary>
+          <p>
+            <strong>Advection</strong> carries each parcel along the flow; colours are permanent labels, so a
+            parcel never changes colour.
+          </p>
+          <p>
+            <strong>Stirring</strong> rearranges parcels so different layers end up side by side. We measure
+            it with a segregation score <em>S</em> computed in bins of 1, 2 and 4 cm: lower means more evenly
+            mixed at that scale.
+          </p>
+          <p>
+            <strong>Diffusion</strong> blurs properties at the molecular scale; it is negligible over seconds
+            and is not what you see here.
+          </p>
+          <p>
+            <strong>Removal is not mixing</strong>: pouring away one layer makes the rest look more uniform.
+            The survivor-cohort comparison uses the same parcels before and after to separate the two.
+          </p>
+          <p>
+            A <strong>pathline</strong> traces one parcel over time; it is not a streamline (the instantaneous
+            flow direction).
+          </p>
+        </details>
+      </section>
+    </main>
+    <footer class="foot">
+      <p>PourLab is free software under the GNU GPL v3 or later. 2D qualitative model: see Model limits.</p>
+    </footer>
+    <div id="tooltip" class="tooltip" hidden></div>
+    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

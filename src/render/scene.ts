@@ -1,0 +1,351 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Marcel Petrick
+//
+// Canvas 2D rendering. Colours come only from immutable origin IDs (the renderer never
+// changes labels or metrics). Drawing uses a minimal context interface so it can be tested.
+
+import { makePose, localToWorld } from '../sim/vessel';
+import { STATUS_DISCHARGED, STATUS_IN_POT, type RenderSnapshot } from '../sim/types';
+import type { StaticInfo } from '../worker/host';
+
+export type Ctx2D = Pick<
+  CanvasRenderingContext2D,
+  | 'save'
+  | 'restore'
+  | 'beginPath'
+  | 'moveTo'
+  | 'lineTo'
+  | 'stroke'
+  | 'fill'
+  | 'fillRect'
+  | 'strokeRect'
+  | 'arc'
+  | 'fillText'
+  | 'setLineDash'
+  | 'clearRect'
+  | 'closePath'
+> & {
+  fillStyle: string | CanvasGradient | CanvasPattern;
+  strokeStyle: string | CanvasGradient | CanvasPattern;
+  lineWidth: number;
+  lineCap: CanvasLineCap;
+  lineJoin: CanvasLineJoin;
+  globalAlpha: number;
+  font: string;
+  textAlign: CanvasTextAlign;
+  textBaseline: CanvasTextBaseline;
+};
+
+export interface Theme {
+  surface: string;
+  ink: string;
+  muted: string;
+  wall: string;
+  grid: string;
+  origins: string[];
+  dim: string;
+  arrow: string;
+}
+
+export type ColourMode = 'origin' | 'poured-map' | 'speed' | 'temperature';
+
+export interface SceneOptions {
+  mode: ColourMode;
+  pathlines: boolean;
+  arrows: boolean;
+  markers: boolean;
+}
+
+export interface Viewport {
+  scale: number;
+  ox: number;
+  oy: number;
+  width: number;
+  height: number;
+}
+
+/** Fit the world domain into width x height pixels (y up in world, down on screen). */
+export function fitViewport(
+  domainW: number,
+  domainH: number,
+  width: number,
+  height: number,
+  pad = 8,
+): Viewport {
+  const scale = Math.min((width - 2 * pad) / domainW, (height - 2 * pad) / domainH);
+  const ox = (width - domainW * scale) / 2;
+  const oy = height - (height - domainH * scale) / 2;
+  return { scale, ox, oy, width, height };
+}
+
+export function toScreen(v: Viewport, x: number, y: number): [number, number] {
+  return [v.ox + x * v.scale, v.oy - y * v.scale];
+}
+
+/** Sequential single-hue ramp (light -> dark) for magnitude modes. */
+export function rampColour(t: number): string {
+  const c = Math.max(0, Math.min(1, t));
+  const l = 88 - 58 * c;
+  return `hsl(205 70% ${l.toFixed(0)}%)`;
+}
+
+/** Diverging ramp for temperature: cool blue - neutral grey - warm red. */
+export function temperatureColour(t: number): string {
+  const c = Math.max(-1, Math.min(1, t));
+  if (Math.abs(c) < 0.05) return 'hsl(0 0% 60%)';
+  const hue = c < 0 ? 215 : 10;
+  const sat = 15 + 60 * Math.abs(c);
+  return `hsl(${hue} ${sat.toFixed(0)}% ${(58 - 12 * Math.abs(c)).toFixed(0)}%)`;
+}
+
+function drawMarker(ctx: Ctx2D, k: number, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  if (k === 0) ctx.arc(x, y, r, 0, Math.PI * 2);
+  else if (k === 1) {
+    ctx.moveTo(x - r, y - r);
+    ctx.lineTo(x + r, y - r);
+    ctx.lineTo(x + r, y + r);
+    ctx.lineTo(x - r, y + r);
+    ctx.closePath();
+  } else {
+    ctx.moveTo(x, y - r * 1.2);
+    ctx.lineTo(x + r * 1.1, y + r * 0.8);
+    ctx.lineTo(x - r * 1.1, y + r * 0.8);
+    ctx.closePath();
+  }
+  ctx.fill();
+}
+
+export function drawVessel(ctx: Ctx2D, v: Viewport, info: StaticInfo, angleDeg: number, theme: Theme): void {
+  const pose = makePose((-angleDeg * Math.PI) / 180, 0, info.config.pivotLocal, info.config.pivotWorld);
+  const w = new Float64Array(2);
+  ctx.save();
+  ctx.strokeStyle = theme.wall;
+  ctx.lineWidth = Math.max(1, 2 * info.halfWall * v.scale);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = 0.55;
+  for (const pl of info.polylines) {
+    ctx.beginPath();
+    pl.forEach(([lx, ly], i) => {
+      localToWorld(pose, lx, ly, w);
+      const [sx, sy] = toScreen(v, w[0], w[1]);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    });
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  if (info.outflow) {
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = theme.muted;
+    ctx.beginPath();
+    localToWorld(pose, info.outflow.ax, info.outflow.ay, w);
+    let [sx, sy] = toScreen(v, w[0], w[1]);
+    ctx.moveTo(sx, sy);
+    localToWorld(pose, info.outflow.bx, info.outflow.by, w);
+    [sx, sy] = toScreen(v, w[0], w[1]);
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+export function drawParcels(
+  ctx: Ctx2D,
+  v: Viewport,
+  info: StaticInfo,
+  snap: RenderSnapshot,
+  opts: SceneOptions,
+  theme: Theme,
+  tempRange: [number, number],
+): void {
+  const r = Math.max(1.2, info.h * v.scale * (opts.markers ? 0.42 : 0.3));
+  const pos = snap.positions;
+  const maxY = info.config.domainHeight;
+  ctx.save();
+  for (let p = 0; p < snap.count; p++) {
+    const st = snap.status[p];
+    const y = pos[2 * p + 1];
+    if (st !== STATUS_IN_POT && st !== STATUS_DISCHARGED) continue;
+    if (y < -0.05 || y > maxY * 1.2) continue;
+    const k = info.origin[p];
+    let colour: string;
+    switch (opts.mode) {
+      case 'speed':
+        colour = rampColour(snap.speed[p] / 0.6);
+        break;
+      case 'temperature': {
+        const T = snap.temperature ? snap.temperature[p] : tempRange[0];
+        const mid = 0.5 * (tempRange[0] + tempRange[1]);
+        const half = Math.max(0.5, 0.5 * (tempRange[1] - tempRange[0]));
+        colour = temperatureColour((T - mid) / half);
+        break;
+      }
+      case 'poured-map':
+        colour = st === STATUS_DISCHARGED ? theme.origins[k % theme.origins.length] : theme.dim;
+        break;
+      default:
+        colour = theme.origins[k % theme.origins.length];
+    }
+    ctx.fillStyle = colour;
+    const [sx, sy] = toScreen(v, pos[2 * p], y);
+    if (opts.markers && opts.mode === 'origin') drawMarker(ctx, k, sx, sy, r);
+    else ctx.fillRect(sx - r, sy - r, 2 * r, 2 * r);
+  }
+  ctx.restore();
+}
+
+export function drawPathlines(
+  ctx: Ctx2D,
+  v: Viewport,
+  info: StaticInfo,
+  paths: number[][],
+  theme: Theme,
+): void {
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.9;
+  paths.forEach((pts, idx) => {
+    if (pts.length < 4) return;
+    const k = info.origin[info.pathlineParticles[idx]];
+    ctx.strokeStyle = theme.origins[k % theme.origins.length];
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i += 2) {
+      const [sx, sy] = toScreen(v, pts[i], pts[i + 1]);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+    const [ex, ey] = toScreen(v, pts[pts.length - 2], pts[pts.length - 1]);
+    ctx.fillStyle = theme.ink;
+    ctx.beginPath();
+    ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+export function drawArrows(ctx: Ctx2D, v: Viewport, arrows: Float32Array, theme: Theme): void {
+  ctx.save();
+  ctx.strokeStyle = theme.arrow;
+  ctx.lineWidth = 1;
+  const k = 0.12; // seconds of travel shown per arrow
+  for (let i = 0; i + 3 < arrows.length; i += 4) {
+    const [sx, sy] = toScreen(v, arrows[i], arrows[i + 1]);
+    const [ex, ey] = toScreen(v, arrows[i] + arrows[i + 2] * k, arrows[i + 1] + arrows[i + 3] * k);
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ex, ey, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * The receiving glass is an accounting display, not a simulation: stacked bands show
+ * discharged volume by origin, bottom band first, in the order the volume arrived.
+ */
+export function drawGlass(
+  ctx: Ctx2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  capacity: number,
+  byOrigin: number[],
+  names: string[],
+  theme: Theme,
+): void {
+  ctx.save();
+  let level = y + h;
+  const total = byOrigin.reduce((a, b) => a + b, 0);
+  byOrigin.forEach((vol, k) => {
+    const hh = (vol / capacity) * h;
+    if (hh <= 0) return;
+    ctx.fillStyle = theme.origins[k % theme.origins.length];
+    ctx.fillRect(x + 2, level - hh, w - 4, Math.max(0, hh - 2));
+    level -= hh;
+  });
+  ctx.strokeStyle = theme.ink;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w, y);
+  ctx.stroke();
+  ctx.fillStyle = theme.ink;
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`${(total * 1e6).toFixed(0)} mL`, x + w / 2, y + h + 6);
+  ctx.fillStyle = theme.muted;
+  ctx.fillText('glass (accounting only)', x + w / 2, y + h + 22);
+  void names;
+  ctx.restore();
+}
+
+/** Initial pot view: where did the poured liquid start? Discharged parcels in colour at their initial positions. */
+export function drawInitialMap(
+  ctx: Ctx2D,
+  width: number,
+  height: number,
+  info: StaticInfo,
+  status: Uint8Array,
+  theme: Theme,
+): void {
+  ctx.save();
+  ctx.fillStyle = theme.surface;
+  ctx.fillRect(0, 0, width, height);
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const pl of info.polylines)
+    for (const [x, y] of pl) {
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+  const vp = fitViewport(x1 - x0 + 0.02, y1 - y0 + 0.02, width, height, 6);
+  const tx = (x: number) => vp.ox + (x - x0 + 0.01) * vp.scale;
+  const ty = (y: number) => vp.oy - (y - y0 + 0.01) * vp.scale;
+  ctx.strokeStyle = theme.wall;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = Math.max(1, 2 * info.halfWall * vp.scale);
+  ctx.lineCap = 'round';
+  for (const pl of info.polylines) {
+    ctx.beginPath();
+    pl.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(tx(x), ty(y)) : ctx.lineTo(tx(x), ty(y))));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const r = Math.max(1, info.h * vp.scale * 0.3);
+  // Dim parcels first, then highlighted discharged ones on top.
+  for (let pass = 0; pass < 2; pass++)
+    for (let p = 0; p < info.n; p++) {
+      const poured = status[p] === STATUS_DISCHARGED;
+      if ((pass === 0) === poured) continue;
+      ctx.fillStyle = poured ? theme.origins[info.origin[p] % theme.origins.length] : theme.dim;
+      ctx.fillRect(tx(info.x0[p]) - r, ty(info.y0[p]) - r, 2 * r, 2 * r);
+    }
+  // Band edges.
+  ctx.strokeStyle = theme.muted;
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  for (const e of info.bandEdges) {
+    ctx.beginPath();
+    ctx.moveTo(tx(0), ty(e));
+    ctx.lineTo(tx(info.config.vessel.innerWidth), ty(e));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}

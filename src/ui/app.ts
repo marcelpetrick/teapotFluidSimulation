@@ -1,0 +1,754 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Marcel Petrick
+//
+// Main-thread application: settings form, playback, rendering, charts, tables, exports.
+// Dependencies (worker, canvas context, frame scheduler, clock) are injected for testing.
+
+import {
+  LIMITS,
+  PRESETS,
+  QUALITY_LADDER,
+  configFromSettings,
+  presetById,
+  settingsFromQuery,
+  settingsToQuery,
+  validateSettings,
+  type UserSettings,
+} from '../sim/config';
+import { modelLimitations } from '../sim/experiment';
+import type { Diagnostics, RenderSnapshot } from '../sim/types';
+import { summarize } from '../sim/metrics';
+import type { FrameMetrics, FromWorker, StaticInfo, ToWorker } from '../worker/host';
+import {
+  drawArrows,
+  drawGlass,
+  drawInitialMap,
+  drawParcels,
+  drawPathlines,
+  drawVessel,
+  fitViewport,
+  type ColourMode,
+  type Ctx2D,
+  type Theme,
+} from '../render/scene';
+import { chartBox, drawBiasChart, drawBinsChart, drawTimeSeries } from '../render/charts';
+
+export interface WorkerLike {
+  postMessage(msg: ToWorker): void;
+  onmessage: ((e: { data: FromWorker }) => void) | null;
+  onerror?: ((e: unknown) => void) | null;
+}
+
+export interface AppDeps {
+  doc: Document;
+  worker: WorkerLike;
+  getContext: (c: HTMLCanvasElement) => Ctx2D | null;
+  schedule: (cb: (t: number) => void) => void;
+  now: () => number;
+  location: { search: string; pathname: string; origin: string };
+  history: { replaceState: (a: unknown, b: string, url: string) => void };
+  download: (name: string, data: string | Blob) => void;
+  copy: (text: string) => Promise<void>;
+  reducedMotion: boolean;
+  version: string;
+}
+
+interface StoredFrame {
+  time: number;
+  angleDeg: number;
+  positions: Float32Array;
+  status: Uint8Array;
+}
+
+export interface RunSummary {
+  name: string;
+  seed: number;
+  quality: number;
+  dischargedMl: number;
+  targetMl: number;
+  composition: string;
+  segregationNow: string;
+  segregationSurvivorInitial: string;
+  pressureFailures: number;
+}
+
+const MAX_STORED_FRAMES = 900;
+
+export class App {
+  private d: AppDeps;
+  settings: UserSettings;
+  info: StaticInfo | null = null;
+  snapshot: RenderSnapshot | null = null;
+  diagnostics: Diagnostics | null = null;
+  metrics: FrameMetrics | null = null;
+  arrows: Float32Array = new Float32Array(0);
+  running = false;
+  finished = false;
+  realtimeFactor = 1;
+  pending = false;
+  frames: StoredFrame[] = [];
+  scrubIndex = -1;
+  runs: RunSummary[] = [];
+  private lastFrameTime = 0;
+  private loopStarted = false;
+  private recorded = false;
+  lastError = '';
+
+  constructor(deps: AppDeps) {
+    this.d = deps;
+    this.settings = settingsFromQuery(deps.location.search);
+    deps.worker.onmessage = (e) => this.onMessage(e.data);
+    deps.worker.onerror = () => this.setStatus('The simulation worker failed. Reload the page to retry.');
+  }
+
+  el<T extends HTMLElement>(id: string): T {
+    const e = this.d.doc.getElementById(id);
+    if (!e) throw new Error(`Missing element #${id}`);
+    return e as T;
+  }
+
+  start(): void {
+    this.el('version').textContent = `v${this.d.version}`;
+    this.buildSettingsForm();
+    this.bindControls();
+    this.applySettings(this.settings, false);
+    if (!this.loopStarted) {
+      this.loopStarted = true;
+      this.lastFrameTime = this.d.now();
+      this.d.schedule((t) => this.tick(t));
+    }
+  }
+
+  // ------------------------------------------------------------ settings
+
+  private numberField(container: HTMLElement, key: keyof typeof LIMITS): void {
+    const lim = LIMITS[key];
+    const label = this.d.doc.createElement('label');
+    label.textContent = `${lim.label}${lim.unit ? ` (${lim.unit})` : ''}`;
+    const input = this.d.doc.createElement('input');
+    input.type = 'number';
+    input.name = key;
+    input.id = `set-${key}`;
+    input.min = String(lim.min);
+    input.max = String(lim.max);
+    input.step = String(lim.step);
+    label.appendChild(input);
+    container.appendChild(label);
+  }
+
+  private selectField(container: HTMLElement, name: string, text: string, options: [string, string][]): void {
+    const label = this.d.doc.createElement('label');
+    label.textContent = text;
+    const sel = this.d.doc.createElement('select');
+    sel.name = name;
+    sel.id = `set-${name}`;
+    for (const [v, t] of options) {
+      const o = this.d.doc.createElement('option');
+      o.value = v;
+      o.textContent = t;
+      sel.appendChild(o);
+    }
+    label.appendChild(sel);
+    container.appendChild(label);
+  }
+
+  private buildSettingsForm(): void {
+    const preset = this.el<HTMLSelectElement>('preset');
+    preset.innerHTML = '';
+    for (const p of PRESETS) {
+      const o = this.d.doc.createElement('option');
+      o.value = p.id;
+      o.textContent = `${p.label} (${p.status})`;
+      preset.appendChild(o);
+    }
+    const f = this.el('fields');
+    f.innerHTML = '';
+    this.selectField(f, 'vessel', 'Vessel', [
+      ['teapot', 'Teapot (low-inlet spout)'],
+      ['pitcher', 'Pitcher (rim lip)'],
+      ['tank', 'Open tank (test)'],
+    ]);
+    for (const k of [
+      'fillMl',
+      'targetMl',
+      'tiltDuration',
+      'holdAngle',
+      'returnDuration',
+      'duration',
+    ] as const)
+      this.numberField(f, k);
+    const n = this.el('numFields');
+    n.innerHTML = '';
+    this.selectField(
+      n,
+      'quality',
+      'Resolution (cells across body)',
+      QUALITY_LADDER.map((q) => [String(q), `${q}${q === 44 ? ' (fast)' : q === 96 ? ' (slow)' : ''}`]),
+    );
+    this.selectField(n, 'transfer', 'Transfer scheme', [
+      ['flip', 'PIC/FLIP'],
+      ['apic', 'APIC'],
+    ]);
+    this.numberField(n, 'flipRatio');
+    this.numberField(n, 'seed');
+    const t = this.el('thermalFields');
+    t.innerHTML = '';
+    this.selectField(t, 'thermal', 'Thermal mode', [
+      ['off', 'Off (uniform)'],
+      ['passive', 'Passive colour only (no buoyancy)'],
+      ['coupled', 'Coupled buoyancy'],
+    ]);
+    for (const k of ['topC', 'bottomC', 'coolingWm2K'] as const) this.numberField(t, k);
+  }
+
+  private writeForm(s: UserSettings): void {
+    this.el<HTMLSelectElement>('preset').value = s.preset;
+    this.el('presetPurpose').textContent = presetById(s.preset).purpose;
+    for (const [k, v] of Object.entries(s)) {
+      const e = this.d.doc.getElementById(`set-${k}`) as HTMLInputElement | HTMLSelectElement | null;
+      if (e) e.value = String(v);
+    }
+  }
+
+  readForm(): UserSettings {
+    const s: UserSettings = { ...this.settings };
+    s.preset = this.el<HTMLSelectElement>('preset').value;
+    const rec = s as unknown as Record<string, string | number>;
+    for (const k of Object.keys(s)) {
+      if (k === 'preset') continue;
+      const e = this.d.doc.getElementById(`set-${k}`) as HTMLInputElement | HTMLSelectElement | null;
+      if (!e) continue;
+      rec[k] = typeof rec[k] === 'number' ? (e.value.trim() === '' ? NaN : Number(e.value)) : e.value;
+    }
+    return s;
+  }
+
+  applySettings(s: UserSettings, updateUrl = true): boolean {
+    const errs = validateSettings(s);
+    this.el('errors').textContent = errs.join('\n');
+    if (errs.length) return false;
+    this.settings = s;
+    this.writeForm(s);
+    if (updateUrl) this.d.history.replaceState(null, '', `${this.d.location.pathname}?${settingsToQuery(s)}`);
+    const cfg = configFromSettings(s);
+    this.info = null;
+    this.frames = [];
+    this.scrubIndex = -1;
+    this.running = false;
+    this.finished = false;
+    this.recorded = false;
+    this.pending = true;
+    this.setStatus('Preparing experiment...');
+    const pour = this.el<HTMLButtonElement>('pour');
+    pour.textContent =
+      cfg.motion.kind === 'pour'
+        ? `Pour ${s.targetMl} mL`
+        : cfg.motion.kind === 'tilt'
+          ? 'Tilt and return'
+          : 'Run (no pour)';
+    const lim = this.el('limits');
+    lim.innerHTML = '';
+    for (const l of modelLimitations(cfg)) {
+      const li = this.d.doc.createElement('li');
+      li.textContent = l;
+      lim.appendChild(li);
+    }
+    this.el('prompt').hidden = false;
+    this.d.worker.postMessage({ type: 'init', config: cfg });
+    return true;
+  }
+
+  private loadPreset(id: string): void {
+    const s = settingsFromQuery(
+      `preset=${encodeURIComponent(id)}&quality=${this.settings.quality}&seed=${this.settings.seed}`,
+    );
+    this.applySettings(s);
+  }
+
+  // ------------------------------------------------------------ controls
+
+  private bindControls(): void {
+    const on = (id: string, ev: string, fn: (e: Event) => void) => this.el(id).addEventListener(ev, fn);
+    on('pour', 'click', () => {
+      if (this.finished) this.applySettings(this.settings, false);
+      this.setRunning(true);
+    });
+    on('play', 'click', () => this.setRunning(!this.running));
+    on('step', 'click', () => {
+      this.setRunning(false);
+      this.post({ type: 'step' });
+    });
+    on('reset', 'click', () => this.applySettings(this.settings, false));
+    on('speed', 'change', (e) =>
+      this.post({ type: 'speed', value: Number((e.target as HTMLSelectElement).value) }),
+    );
+    on('preset', 'change', (e) => this.loadPreset((e.target as HTMLSelectElement).value));
+    on('settings', 'submit', (e) => {
+      e.preventDefault();
+      this.applySettings(this.readForm());
+    });
+    on('share', 'click', () => {
+      const url = `${this.d.location.origin}${this.d.location.pathname}?${settingsToQuery(this.settings)}`;
+      this.d.copy(url).then(
+        () => this.setStatus('Share link copied.'),
+        () => this.setStatus(url),
+      );
+    });
+    on('cmpStill', 'click', () => this.loadPreset('teapot-still'));
+    on('cmpSlow', 'click', () => this.loadPreset('teapot-slow'));
+    on('cmpSpout', 'click', () =>
+      this.loadPreset(this.settings.vessel === 'pitcher' ? 'teapot-gentle' : 'pitcher-gentle'),
+    );
+    for (const id of ['mode', 'pathlines', 'arrows', 'markers']) on(id, 'change', () => this.render());
+    on('diagToggle', 'change', (e) => {
+      (this.el('diagnostics') as HTMLDetailsElement).open = (e.target as HTMLInputElement).checked;
+    });
+    on('scrub', 'input', (e) => {
+      this.scrubIndex = Number((e.target as HTMLInputElement).value);
+      this.render();
+    });
+    on('expJson', 'click', () => this.post({ type: 'export' }));
+    on('expCsv', 'click', () => {
+      this.wantCsv = true;
+      this.post({ type: 'export' });
+    });
+    on('expPng', 'click', () => {
+      const c = this.el<HTMLCanvasElement>('scene');
+      try {
+        this.d.download('pourlab-view.png', c.toDataURL('image/png'));
+      } catch {
+        this.setStatus('PNG export is not available in this browser.');
+      }
+    });
+    this.d.doc.addEventListener('keydown', (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName ?? '';
+      if (e.key === ' ' && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag)) {
+        e.preventDefault();
+        this.setRunning(!this.running);
+      }
+    });
+  }
+
+  private wantCsv = false;
+
+  private post(m: ToWorker): void {
+    this.d.worker.postMessage(m);
+  }
+
+  setRunning(r: boolean): void {
+    if (r && this.finished) return;
+    this.running = r;
+    this.scrubIndex = -1;
+    this.post({ type: r ? 'play' : 'pause' });
+    const b = this.el<HTMLButtonElement>('play');
+    b.textContent = r ? 'Pause' : 'Play';
+    b.setAttribute('aria-pressed', String(r));
+    this.el<HTMLInputElement>('scrub').disabled = r || this.frames.length === 0;
+    if (r) this.el('prompt').hidden = true;
+  }
+
+  setStatus(text: string): void {
+    this.el('status').textContent = text;
+  }
+
+  // ------------------------------------------------------------ worker messages
+
+  onMessage(m: FromWorker): void {
+    switch (m.type) {
+      case 'ready':
+        this.info = m.info;
+        this.snapshot = m.snapshot;
+        this.diagnostics = m.diagnostics;
+        this.metrics = m.metrics;
+        this.pending = false;
+        this.storeFrame(m.snapshot);
+        this.buildLegend();
+        this.setStatus(
+          `Ready: ${m.info.n} parcels, grid ${m.info.nx}x${m.info.ny}, cell ${(m.info.h * 1000).toFixed(1)} mm. ${this.d.reducedMotion ? 'Reduced motion: press Play to start.' : ''}`.trim(),
+        );
+        this.updatePanels();
+        this.render();
+        break;
+      case 'frame':
+        this.pending = false;
+        this.snapshot = m.snapshot;
+        this.diagnostics = m.diagnostics;
+        this.arrows = m.arrows;
+        this.realtimeFactor = m.realtimeFactor;
+        if (m.metrics) this.metrics = m.metrics;
+        if (this.running) this.storeFrame(m.snapshot);
+        this.finished = m.finished;
+        if (this.running && !m.running) {
+          this.setRunning(false);
+          if (m.finished) this.onFinished();
+        }
+        this.updateStatusLine();
+        if (m.metrics) this.updatePanels();
+        this.render();
+        break;
+      case 'export':
+        if (this.wantCsv) this.d.download(`${m.fileStem}.csv`, m.csv);
+        else this.d.download(`${m.fileStem}.json`, m.json);
+        this.wantCsv = false;
+        break;
+      case 'error':
+        this.lastError = m.message;
+        this.pending = false;
+        this.setRunning(false);
+        this.setStatus(`Error: ${m.message}`);
+        break;
+    }
+  }
+
+  private storeFrame(s: RenderSnapshot): void {
+    if (this.frames.length >= MAX_STORED_FRAMES) {
+      // Thin the history by half to stay bounded while keeping the whole run scrubbable.
+      this.frames = this.frames.filter((_, i) => i % 2 === 0);
+    }
+    this.frames.push({
+      time: s.time,
+      angleDeg: s.angleDeg,
+      positions: s.positions.slice(),
+      status: s.status.slice(),
+    });
+    const scrub = this.el<HTMLInputElement>('scrub');
+    scrub.max = String(this.frames.length - 1);
+    if (this.scrubIndex < 0) scrub.value = scrub.max;
+  }
+
+  private onFinished(): void {
+    if (this.recorded || !this.metrics || !this.info || !this.diagnostics) return;
+    this.recorded = true;
+    const m = this.metrics;
+    const names = this.info.bandNames;
+    const comp = m.composition.dischargedFractions
+      ? m.composition.dischargedFractions.map((f, k) => `${names[k]} ${(f * 100).toFixed(0)}%`).join(', ')
+      : 'none';
+    const fmt = (v: number | null) => (v === null ? 'n/a' : v.toFixed(3));
+    this.runs.push({
+      name: this.info.config.name,
+      seed: this.info.config.seed,
+      quality: this.info.config.cellsAcrossBody,
+      dischargedMl: m.composition.dischargedVolume * 1e6,
+      targetMl: this.info.config.motion.targetVolume * 1e6,
+      composition: comp,
+      segregationNow: fmt(m.mixing.survivorNow[1]),
+      segregationSurvivorInitial: fmt(m.mixing.survivorInitial[1]),
+      pressureFailures: this.diagnostics.pressureFailures,
+    });
+    this.renderComparison();
+  }
+
+  private updateStatusLine(): void {
+    const d = this.diagnostics;
+    if (!d || !this.info) return;
+    const rt =
+      this.running && this.realtimeFactor < 0.95
+        ? ` (computing at ${(this.realtimeFactor * 100).toFixed(0)}% of the chosen speed)`
+        : '';
+    this.setStatus(
+      `t = ${d.time.toFixed(2)} s of ${this.info.config.duration} s, tilt ${d.angleDeg.toFixed(1)} deg (${d.phase}), poured ${(d.volumeDischarged * 1e6).toFixed(0)} mL${rt}${this.finished ? ' - finished' : ''}`,
+    );
+  }
+
+  // ------------------------------------------------------------ rendering
+
+  theme(): Theme {
+    const cs = this.d.doc.defaultView?.getComputedStyle(this.d.doc.documentElement);
+    const v = (name: string, fb: string) => cs?.getPropertyValue(name).trim() || fb;
+    return {
+      surface: v('--surface', '#fcfcfb'),
+      ink: v('--ink', '#1d1f22'),
+      muted: v('--muted', '#5b6068'),
+      wall: v('--wall', '#3d4652'),
+      grid: v('--grid', '#e1e2de'),
+      dim: v('--dim', '#c9ccd1'),
+      arrow: v('--arrow', '#444a52'),
+      origins: [v('--origin-0', '#0072b2'), v('--origin-1', '#009e73'), v('--origin-2', '#d55e00')],
+    };
+  }
+
+  private buildLegend(): void {
+    if (!this.info) return;
+    const ul = this.el('legend');
+    ul.innerHTML = '';
+    const markers = ['circle', 'square', 'triangle'];
+    this.info.bandNames.forEach((n, k) => {
+      const li = this.d.doc.createElement('li');
+      const sw = this.d.doc.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = `var(--origin-${k % 3})`;
+      li.appendChild(sw);
+      li.appendChild(this.d.doc.createTextNode(`started in ${n} third (${markers[k % 3]} marker)`));
+      ul.appendChild(li);
+    });
+  }
+
+  render(): void {
+    const info = this.info;
+    if (!info) return;
+    const canvas = this.el<HTMLCanvasElement>('scene');
+    const ctx = this.d.getContext(canvas);
+    const frame =
+      this.scrubIndex >= 0 && this.scrubIndex < this.frames.length && !this.running
+        ? this.frames[this.scrubIndex]
+        : null;
+    const snap = this.snapshot;
+    if (!ctx || !snap) return;
+    const theme = this.theme();
+    const glassW = 110;
+    const vp = fitViewport(
+      info.config.domainWidth,
+      info.config.domainHeight,
+      canvas.width - glassW - 10,
+      canvas.height,
+    );
+    ctx.fillStyle = theme.surface;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const angle = frame ? frame.angleDeg : snap.angleDeg;
+    drawVessel(ctx, vp, info, angle, theme);
+    const mode = this.el<HTMLSelectElement>('mode').value as ColourMode;
+    const opts = {
+      mode,
+      pathlines: this.el<HTMLInputElement>('pathlines').checked,
+      arrows: this.el<HTMLInputElement>('arrows').checked,
+      markers: this.el<HTMLInputElement>('markers').checked,
+    };
+    const shown: RenderSnapshot = frame
+      ? {
+          ...snap,
+          time: frame.time,
+          angleDeg: frame.angleDeg,
+          positions: frame.positions,
+          status: frame.status,
+        }
+      : snap;
+    const tr: [number, number] = [
+      Math.min(
+        info.config.thermal.bottomTemperature,
+        info.config.thermal.topTemperature,
+        info.config.thermal.ambientTemperature + 40,
+      ),
+      Math.max(info.config.thermal.bottomTemperature, info.config.thermal.topTemperature),
+    ];
+    drawParcels(ctx, vp, info, shown, opts, theme, tr);
+    if (opts.pathlines && this.metrics && !frame) drawPathlines(ctx, vp, info, this.metrics.pathlines, theme);
+    if (opts.arrows && !frame) drawArrows(ctx, vp, this.arrows, theme);
+    const byOrigin = this.metrics ? this.metrics.composition.dischargedByOrigin : [0, 0, 0];
+    const cap = Math.max(info.config.motion.targetVolume * 1.4, 500e-6);
+    drawGlass(
+      ctx,
+      canvas.width - glassW,
+      canvas.height * 0.35,
+      glassW - 20,
+      canvas.height * 0.45,
+      cap,
+      byOrigin,
+      info.bandNames,
+      theme,
+    );
+    if (frame) this.el('scrubTime').textContent = `${frame.time.toFixed(2)} s (stored frame)`;
+    else this.el('scrubTime').textContent = `${snap.time.toFixed(2)} s`;
+
+    const im = this.el<HTMLCanvasElement>('initialMap');
+    const ictx = this.d.getContext(im);
+    if (ictx) drawInitialMap(ictx, im.width, im.height, info, shown.status, theme);
+  }
+
+  private updatePanels(): void {
+    const m = this.metrics;
+    const info = this.info;
+    if (!m || !info) return;
+    const theme = this.theme();
+    const names = info.bandNames;
+    const sum = this.el('summary');
+    sum.innerHTML = '';
+    for (const line of summarize(m.composition, m.mixing, names, info.config.motion.targetVolume * 1e6)) {
+      const li = this.d.doc.createElement('li');
+      li.textContent = line;
+      sum.appendChild(li);
+    }
+    const draw = (id: string, fn: (ctx: Ctx2D, c: HTMLCanvasElement) => void) => {
+      const c = this.el<HTMLCanvasElement>(id);
+      const ctx = this.d.getContext(c);
+      if (ctx) fn(ctx, c);
+    };
+    draw('binsChart', (ctx, c) => drawBinsChart(ctx, chartBox(c.width, c.height), m.bins, theme));
+    draw('biasChart', (ctx, c) =>
+      drawBiasChart(ctx, chartBox(c.width, c.height), m.composition.bias, names, theme),
+    );
+    const target = info.config.motion.targetVolume * 1e6;
+    const maxOut = Math.max(target * 1.25, ...m.history.map((h) => h.discharged * 1e6), 50);
+    draw('dischargeChart', (ctx, c) =>
+      drawTimeSeries(
+        ctx,
+        chartBox(c.width, c.height),
+        m.history,
+        (h) => h.discharged * 1e6,
+        info.config.duration,
+        maxOut,
+        ' mL',
+        theme,
+        target > 0 ? target : null,
+      ),
+    );
+    draw('angleChart', (ctx, c) =>
+      drawTimeSeries(
+        ctx,
+        chartBox(c.width, c.height),
+        m.history,
+        (h) => h.angleDeg,
+        info.config.duration,
+        Math.max(10, info.config.motion.maxAngleDeg),
+        ' deg',
+        theme,
+        null,
+      ),
+    );
+    this.renderTables();
+    this.renderDiagnostics();
+  }
+
+  private table(head: string[], rows: (string | number)[][], caption: string): string {
+    const esc = (s: string | number) =>
+      String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+    return `<table><caption class="hint">${esc(caption)}</caption><thead><tr>${head.map((h) => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
+      .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
+      .join('')}</tbody></table>`;
+  }
+
+  private renderTables(): void {
+    const m = this.metrics!;
+    const names = this.info!.bandNames;
+    const c = m.composition;
+    const pct = (v: number | null | undefined) =>
+      v === null || v === undefined ? 'n/a' : `${(v * 100).toFixed(1)}%`;
+    let html = this.table(
+      ['Layer', 'Initial share F', 'Poured share P', 'B = P/F', 'Poured mL'],
+      names.map((n, k) => [
+        n,
+        pct(c.initialFractions[k]),
+        pct(c.dischargedFractions?.[k]),
+        c.bias?.[k] === null || c.bias?.[k] === undefined ? 'n/a' : c.bias[k]!.toFixed(2),
+        (c.dischargedByOrigin[k] * 1e6).toFixed(1),
+      ]),
+      `Origin of poured liquid (initially in spout: ${(c.dischargedFromSpout * 1e6).toFixed(1)} mL)`,
+    );
+    html += this.table(
+      ['Bin (mL)', ...names],
+      m.bins.map((b) => [
+        `${(b.from * 1e6).toFixed(0)}-${(b.to * 1e6).toFixed(0)}${b.partial ? ' (partial)' : ''}`,
+        ...b.byOrigin.map((v) => (v * 1e6).toFixed(1)),
+      ]),
+      'Composition per 50 mL of discharge (2D-equivalent mL)',
+    );
+    html += this.table(
+      ['From layer', ...m.regions.columns],
+      m.regions.fractions.map((row, k) => [names[k], ...row.map((v) => `${(v * 100).toFixed(1)}%`)]),
+      'Where each starting layer is now (row-normalised; zones use the initial layer heights in pot coordinates)',
+    );
+    const f = (v: number | null) => (v === null ? 'n/a' : v.toFixed(4));
+    html += this.table(
+      [
+        'Bin size',
+        'S remaining now',
+        'S initial (all)',
+        'Survivors: S initial',
+        'Survivors: S now',
+        'Excluded',
+      ],
+      m.mixing.scales.map((s, i) => [
+        `${(s * 100).toFixed(0)} cm`,
+        f(m.mixing.remainingNow[i]),
+        f(m.mixing.initialAll[i]),
+        f(m.mixing.survivorInitial[i]),
+        f(m.mixing.survivorNow[i]),
+        `${(m.mixing.excludedFraction[i] * 100).toFixed(1)}%`,
+      ]),
+      `Segregation S (lower = more uniform at that scale; bins with < 4 parcels excluded). Survivor cohort: ${m.mixing.survivorCount} parcels.`,
+    );
+    this.el('tables').innerHTML = html;
+  }
+
+  private renderDiagnostics(): void {
+    const d = this.diagnostics;
+    const info = this.info;
+    if (!d || !info) return;
+    const ml = (v: number) => `${(v * 1e6).toFixed(1)} mL`;
+    const cfg = info.config;
+    const rows: [string, string][] = [
+      ['Initial volume', ml(d.volumeInitial)],
+      ['In pot', ml(d.volumeInPot)],
+      ['Discharged', ml(d.volumeDischarged)],
+      [
+        'Target / overshoot',
+        cfg.motion.targetVolume > 0
+          ? `${ml(cfg.motion.targetVolume)} / ${ml(d.volumeDischarged - cfg.motion.targetVolume)}`
+          : 'no target',
+      ],
+      ['Spilled', ml(d.volumeSpilled)],
+      ['Unaccounted (lost)', ml(d.volumeLost)],
+      ['Ledger error', `${(d.ledgerError * 1e6).toExponential(2)} mL`],
+      ['Simulated time', `${d.time.toFixed(3)} s`],
+      ['Grid / cell size', `${d.gridNx} x ${d.gridNy}, ${(d.cellSize * 1000).toFixed(2)} mm`],
+      ['Parcels', `${d.particleCount} (depth b = ${(info.depth * 100).toFixed(2)} cm)`],
+      ['Substeps last frame / dt', `${d.substepsLastAdvance} / ${(d.dtLast * 1000).toFixed(2)} ms`],
+      ['Pressure iterations (max)', `${d.pressureIterations} (${d.pressureIterationsMax})`],
+      [
+        'Pressure residual',
+        `${d.pressureResidual.toExponential(2)} 1/s ${d.pressureConverged ? '(converged)' : '(NOT converged)'}`,
+      ],
+      ['Pressure failures', String(d.pressureFailures)],
+      [
+        'Max divergence before / after',
+        `${d.divergenceBefore.toExponential(2)} / ${d.divergenceAfter.toExponential(2)} 1/s`,
+      ],
+      ['Interior parcel density', d.interiorDensity.toFixed(3)],
+      ['Represented-volume drift', `${(d.representedDrift * 100).toFixed(1)}%`],
+      ['Transfer', cfg.transfer === 'flip' ? `PIC/FLIP, FLIP fraction ${cfg.flipRatio}` : 'APIC'],
+      [
+        'Density correction',
+        `${cfg.densityCorrection}, moved ${d.densityCorrectionDisplacement.toFixed(3)} m total`,
+      ],
+      ['Wall collisions', `${d.collisionCorrections}, ${d.collisionDisplacement.toFixed(3)} m total`],
+      ['Wall treatment', 'free-slip, voxelised'],
+      ['Viscosity', cfg.viscosity ? `${cfg.kinematicViscosity.toExponential(2)} m2/s (explicit)` : 'off'],
+      ['Thermal mode', cfg.thermal.mode],
+      [
+        'Mean temperature',
+        cfg.thermal.mode === 'off' ? 'n/a' : `${(d.meanTemperature - 273.15).toFixed(2)} degC`,
+      ],
+      ['Max speed', `${d.maxSpeed.toFixed(3)} m/s`],
+      ['Compute per frame', `${d.wallClockMsLastAdvance.toFixed(1)} ms`],
+      ['Model version', `app ${this.d.version}`],
+    ];
+    this.el('diagList').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  }
+
+  private renderComparison(): void {
+    this.el('comparison').innerHTML = this.table(
+      ['Run', 'Poured mL', 'Composition', 'Survivors S (2 cm) initial -> now', 'Res.', 'Seed'],
+      this.runs.map((r) => [
+        r.name,
+        `${r.dischargedMl.toFixed(0)}${r.targetMl > 0 ? ` / ${r.targetMl.toFixed(0)}` : ''}`,
+        r.composition,
+        `${r.segregationSurvivorInitial} -> ${r.segregationNow}`,
+        r.quality,
+        r.seed,
+      ]),
+      'Finished runs in this session',
+    );
+  }
+
+  // ------------------------------------------------------------ loop
+
+  tick(t: number): void {
+    const dt = Math.max(0, (t - this.lastFrameTime) / 1000);
+    this.lastFrameTime = t;
+    if (this.info && !this.pending && this.running) {
+      this.pending = true;
+      this.post({ type: 'frame', wallDt: dt });
+    }
+    this.d.schedule((tt) => this.tick(tt));
+  }
+}
