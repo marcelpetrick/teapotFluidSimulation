@@ -2,120 +2,63 @@
 
 [![Pipeline](https://github.com/marcelpetrick/teapotFluidSimulation/actions/workflows/pipeline.yml/badge.svg?branch=main)](https://github.com/marcelpetrick/teapotFluidSimulation/actions/workflows/pipeline.yml)
 [![Live demo](https://img.shields.io/badge/demo-GitHub%20Pages-0b5f99.svg)](https://marcelpetrick.github.io/teapotFluidSimulation/)
-[![Version](https://img.shields.io/github/package-json/v/marcelpetrick/teapotFluidSimulation?label=version)](package.json)
+[![Latest release](https://img.shields.io/github/v/release/marcelpetrick/teapotFluidSimulation?sort=semver)](https://github.com/marcelpetrick/teapotFluidSimulation/releases/latest)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
-[![TypeScript 6](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
-[![Vite 8](https://img.shields.io/badge/Vite-8.3-646cff.svg)](https://vite.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 [![Coverage ≥ 95%](https://img.shields.io/badge/coverage-%E2%89%A595%25-brightgreen.svg)](vite.config.ts)
-[![Browsers](https://img.shields.io/badge/e2e-Chromium%20%7C%20Firefox-informational.svg)](e2e/app.spec.ts)
+[![e2e](https://img.shields.io/badge/e2e-Chromium%20%7C%20Firefox-informational.svg)](e2e/app.spec.ts)
 
-**PourLab** is an interactive browser experiment that answers an everyday question:
-**when you pour tea, which parts of the liquid leave the pot, which parts replace them, and how much
-does pouring mix what remains?**
+**Pour 400 mL from a 1.5 L teapot: which water ends up in your cup, and does pouring stir the rest?**
+PourLab answers that with a real 2D fluid simulation in your browser — every parcel of tea keeps the
+colour of the layer it started in.
 
-**▶ Run it: <https://marcelpetrick.github.io/teapotFluidSimulation/>** — no install, no account, no server
-(Firefox and Chrome; WebGPU not required).
+**▶ Try it: <https://marcelpetrick.github.io/teapotFluidSimulation/>** — no install, no account.
 
-**Author: Marcel Petrick <mail@marcelpetrick.it>** · **License: GPLv3 or later, see [`LICENSE`](LICENSE).**
-**Note: this project is generated with AI**, following the specification in [`vision.md`](vision.md).
+| Teapot with a low spout                                                                                      | German glass teapot (lip at the top)                                       |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| ![Spout teapot pouring](media/pourlab-v0.5.0-spout-teapot.gif)                                               | ![German glass teapot pouring](media/pourlab-v0.5.0-glass-teapot.gif)      |
+| Liquid leaves through a low inlet: **25 % bottom, 51 % middle, 22 % top** layer, plus what sat in the spout. | Liquid can only leave over the rim: **0 % bottom, 37 % middle, 63 % top**. |
 
-![PourLab screenshot: a teapot mid-pour with parcels coloured by starting layer, the glass, and charts](docs/screenshot.png)
+## What you can do
 
-## What it does
+- **Pour** to a 400 mL target automatically, or **tilt by hand** with a slider.
+- Pick a **pot model** — spout teapot, German glass teapot, pitcher — or **draw your own pot**.
+- Tune **fill, tilt timing, resolution (up to 128 cells), particles per cell (up to 16)**, transfer
+  scheme and **thermal effects** (warm-over-cool layering, cooling convection).
+- Read the answer: composition of the poured tea, over-representation per layer, a map of where the
+  poured tea started, mixing scores, and how the rest was rearranged.
+- **Share** a link that reproduces the exact experiment; export **JSON**, **CSV** and **PNG**.
 
-- Simulates a **2D cross-section of a 1.5 L teapot** with an incompressible free-surface liquid
-  (hybrid PIC/FLIP particle-grid method, optional APIC) under gravity and a **prescribed tilt**.
-- Every parcel carries a **permanent origin label** (bottom / middle / top third of the initial fill),
-  so you can see where the poured liquid came from.
-- The pot really tilts through a fixed world grid; liquid leaves through a **genuine spout passage**
-  and is counted when it crosses the lip. Nothing is deleted to reach 400 mL: a controller decides when
-  to return upright, and the actual discharge and overshoot are reported.
-- Answers both questions with measured numbers:
-  - _Where did the cup's liquid start?_ — composition of the discharge (cumulative and per 50 mL),
-    over-representation ratio **B**, and a map of the **initial positions** of the poured parcels.
-  - _What happened to the liquid left behind?_ — origin-to-region matrix, multi-scale segregation
-    **S**, and a **survivor-cohort** analysis that separates selective removal from real mixing.
-- Pot models: a **teapot with a low-inlet spout**, a **German glass teapot** (wide glass cylinder with
-  a pouring lip at the rim, no spout — it can only pour from the top), a rim-pouring **pitcher**, and an
-  open test tank. "Change the spout" cycles through the pot models.
-- Presets: gentle / faster / slower pour, still control, tilt without spilling, German glass teapot,
-  rim-pouring pitcher,
-  repeated pours, warm-over-cool stratification and cooling-driven convection (thermal Version 2).
-- Every run exports a reproducible **JSON record**, **CSV metrics** and a **PNG** view.
+Every control has a tooltip that explains what it does. Model limits are always shown next to the
+results: this is a qualitative 2D model, not a calibrated digital twin of your teapot.
 
-The model limits are always shown beside the results: it is a qualitative 2D instrument, not a
-calibrated digital twin of a particular teapot. Physics and validation: [`docs/physics.md`](docs/physics.md),
-[`docs/validation.md`](docs/validation.md).
-
-## Usage
-
-1. Open the [live page](https://marcelpetrick.github.io/teapotFluidSimulation/) (or run it locally).
-2. Look at the initial layers, then press **Pour 400 mL**. Use **Play/Pause**, **Step**, playback speed,
-   and the **timeline** (pause, then scrub stored frames).
-3. Read **Answer so far**, the charts and the data tables. Try **Compare with no pour**,
-   **Try a slower pour** and **Change the spout**; finished runs collect in **Run comparison**.
-4. Change **Experiment settings** (fill, target, tilt timing, hold angle, vessel, resolution, transfer
-   scheme, FLIP fraction, seed, thermal mode and temperatures) and press **Apply & reset**. Settings
-   live in the URL, so **Copy share link** reproduces an experiment for anyone.
-5. Open **Diagnostics** for the volume ledger, pressure residual, divergence, density drift,
-   stabiliser activity and performance. Press **Space** to play or pause.
-
-## Setup
-
-Requirements: Node.js ≥ 22 (CI uses 24) and npm.
+## Run locally
 
 ```bash
-npm ci            # install exact, locked dependencies
-npm run dev       # development server at http://localhost:5173
-npm run build     # production build into dist/ (relative paths; works on any sub-path)
-npm run preview   # serve the production build
+npm ci
+npm run dev          # http://localhost:5173
 ```
 
-## Testing
+Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on any sub-path.
 
-| Command                                                       | What it runs                                                                                                                  |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`                                                    | Vitest unit and integration tests (solver verification, metrics, config, worker host, renderer, app with happy-dom)           |
-| `npm run coverage`                                            | Same with V8 coverage; fails below 95 % lines/statements/functions or 90 % branches                                           |
-| `npm run e2e`                                                 | Playwright end-to-end tests in Chromium and Firefox against `dist/` served under `/teapotFluidSimulation/`, like GitHub Pages |
-| `npm run lint` / `npm run typecheck` / `npm run format:check` | ESLint, `tsc --noEmit`, Prettier                                                                                              |
-| `npm run bench`                                               | Headless benchmark: resolution ladder and PIC/FLIP vs APIC (writes `benchmarks/results.json`)                                 |
+## Quality
 
-The verification tests cover hydrostatic rest, projection convergence, uniform advection, moving-wall
-tunnelling, outflow counted once, ledger closure, determinism, origin-label immutability, controller
-phases, thermal diffusion, buoyancy direction and cooling budgets.
+|                      |                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./localPipeline.sh` | format → lint → typecheck → unit and integration tests with **≥ 95 % coverage** → build → **e2e in Chromium and Firefox**                                           |
+| CI                   | [GitHub Actions](.github/workflows/pipeline.yml) runs the same script and deploys to GitHub Pages                                                                   |
+| Physics checks       | hydrostatic rest, projection convergence, moving-wall tunnelling, outflow counted once, ledger closure, determinism, analytic diffusion, buoyancy, refinement study |
 
-## Pipeline
+## Documentation
 
-`./localPipeline.sh` is the single source of truth: install → format check → lint → typecheck →
-tests with coverage → build → e2e (Chromium + Firefox). Options: `--no-e2e`, `--no-install`.
-[`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml) runs the same script on every push
-and pull request and, on `main`, deploys `dist/` to GitHub Pages.
-
-Helper scripts are documented in [`scripts/README.md`](scripts/README.md): staged-commit verification,
-version bumping, controller calibration, the sub-path static server and screenshot capture.
-
-## Project layout
-
-```text
-src/sim/        solver (MAC grid, PCG pressure, PIC/FLIP + APIC), vessel geometry, motion controller,
-                metrics, presets/settings, experiment records — no browser APIs, runs headless
-src/worker/     worker host (testable) and Web Worker entry
-src/render/     Canvas 2D scene and charts
-src/ui/app.ts   main-thread application
-tests/  e2e/  benchmarks/  scripts/  docs/
-vision.md       product specification · plan.md implementation plan · AGENTS.md contributor rules
-```
-
-## Contributing
-
-Work on `main` with atomic [Conventional Commits](https://www.conventionalcommits.org/); every commit bumps
-the patch version (`scripts/bump-version.sh`), major features bump the minor version, and every commit
-passes `scripts/verify-staged.sh` (the pipeline on exactly the staged tree). See [`AGENTS.md`](AGENTS.md).
+- [`docs/physics.md`](docs/physics.md) — equations, discretisation, controller, metrics and their limits
+- [`docs/validation.md`](docs/validation.md) — measured verification, refinement, sensitivity and performance
+- [`docs/architecture.md`](docs/architecture.md) — C4 diagrams and runtime flowcharts
+- [`docs/sources.md`](docs/sources.md) — literature used
+- [`scripts/README.md`](scripts/README.md) — helper scripts (verified commits, GIF rendering, calibration, …)
+- [`vision.md`](vision.md) · [`plan.md`](plan.md) · [`AGENTS.md`](AGENTS.md) — specification, plan, contributor rules
 
 ## License
 
-Copyright (C) 2026 Marcel Petrick. PourLab is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the Free Software Foundation, either
-version 3 of the License, or (at your option) any later version. See [`LICENSE`](LICENSE) and
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+Copyright (C) 2026 Marcel Petrick &lt;mail@marcelpetrick.it&gt;. Free software under the
+[GNU GPL v3 or later](LICENSE). Generated with AI from the specification in [`vision.md`](vision.md).

@@ -1,0 +1,85 @@
+# Verification and validation report
+
+Verification asks whether the equations are solved correctly; validation asks whether the model predicts
+real pouring. PourLab has **verification evidence** (below) but **no validation against physical
+experiments yet** (vision §11, owner tasks §14). All numbers are reproducible:
+
+```bash
+npx tsx benchmarks/run.ts > benchmarks/results.json     # all cases (or one id / prefix*)
+npx tsx benchmarks/perf.ts > benchmarks/perf.json       # isolated solver throughput
+npm run build && npx tsx scripts/measure-browser.ts      # browser frame rate and throughput
+```
+
+Raw data: [`benchmarks/results.json`](../benchmarks/results.json), [`perf.json`](../benchmarks/perf.json),
+[`browser.json`](../benchmarks/browser.json). Machine: 12th Gen Intel Core i9-12900H, Linux, Node 24,
+Chromium 158, Firefox 159.
+
+## Automated verification tests (`npm test`, run on every commit)
+
+| Check              | Criterion                                                             | Result                                                                                      |
+| ------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Hydrostatic rest   | max speed < 2 cm/s after 2 s, centroid drift < 2 mm, no volume change | passes (max speed 0.02 m/s at 44 cells)                                                     |
+| Projection         | post-projection divergence ≤ before; PCG residual converged           | 1e-5–2e-4 1/s, 0 failures in all cases                                                      |
+| Uniform advection  | median position error of a translated block                           | < 1e-5 m; only the voxelised wall layer (≤ 2/44 of parcels) is slowed — a stated limitation |
+| Moving walls       | no parcel penetrates a tilting wall, no volume lost                   | max penetration 0                                                                           |
+| Outflow            | each parcel counted at most once; ledger closes                       | ledger error < 1e-12 mL                                                                     |
+| Determinism        | same seed → identical positions; different seed differs               | passes                                                                                      |
+| Origin labels      | equal-volume bands, immutable through a run                           | passes                                                                                      |
+| Analytic diffusion | decay rate of a cosine temperature mode in an insulated column        | measured 0.106 1/s vs analytic 0.0987 1/s (+7 %, cell-discretised column height)            |
+| Buoyancy           | cool-over-warm overturns, warm-over-cool stays quiet                  | kinetic energy ratio > 5                                                                    |
+| Cooling            | mean temperature falls; heat inventory incl. boundary losses          | inventory error < 2 %                                                                       |
+
+## Engineering gates (vision §11)
+
+| Gate                     | Target                                                     | Measured                                                                                      | Status |
+| ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------ |
+| Represented-volume drift | < 1 % (short runs)                                         | interior parcel density 1.000 ± 0.001 with density correction (1.07 without)                  | pass   |
+| Pour accuracy            | within 5 % of 400 mL                                       | 399.6 (gentle), 403.0 (fast), 400.5 (slow), 401.1 (pitcher), 397.1 (glass), 400.7 (repeat) mL | pass   |
+| Refinement               | finest two resolutions within 5 points per origin fraction | 64 vs 96 cells: max difference 1.4 points                                                     | pass   |
+| Browser frame rate       | ≥ 30 rendered fps with responsive controls                 | 60 fps animation; 45 (Chromium) / 47 (Firefox) fresh simulation frames per second             | pass   |
+| Firefox and Chrome       | same preset completes and exports a valid record           | e2e in both, JSON record parsed                                                               | pass   |
+
+## Refinement and numerical sensitivity (gentle 400 mL pour, teapot)
+
+| Case                     | Parcels | Poured mL | Bottom / middle / top % | Survivor S (2 cm) start → end |
+| ------------------------ | ------- | --------- | ----------------------- | ----------------------------- |
+| FLIP 0.95, 44 cells      | 5 259   | 399.6     | 25.3 / 52.4 / 22.3      | 0.541 → 0.362                 |
+| FLIP 0.95, 64 cells      | 11 174  | 401.9     | 27.0 / 50.7 / 22.3      | 0.543 → 0.334                 |
+| FLIP 0.95, 96 cells      | 25 357  | 417.6     | 27.4 / 49.3 / 23.3      | 0.540 → 0.378                 |
+| 96 cells, half time step | 25 357  | 408.9     | 26.9 / 50.2 / 22.9      | 0.540 → 0.357                 |
+| APIC, 44 cells           | 5 259   | 398.7     | 26.3 / 50.5 / 23.2      | 0.539 → 0.336                 |
+| APIC, 64 cells           | 11 174  | 413.9     | 27.6 / 50.0 / 22.3      | 0.543 → 0.342                 |
+| FLIP 0.80                | 5 259   | 388.2     | 21.0 / 55.3 / 23.7      | 0.545 → 0.413                 |
+| FLIP 1.00                | 5 259   | 400.7     | 27.0 / 50.6 / 22.4      | 0.539 → 0.303                 |
+| no density correction    | 5 259   | 393.0     | 25.8 / 52.5 / 21.7      | 0.538 → 0.358                 |
+| seed 2                   | 5 266   | 397.4     | 23.9 / 53.5 / 22.6      | 0.540 → 0.354                 |
+
+Reading: the **origin composition is robust** (± 3 points across resolution, scheme, time step and seed),
+so "mostly mid-height liquid plus the spout contents" is a stable answer for this geometry. The
+**mixing score is more sensitive**: the FLIP fraction moves the final survivor S between 0.30 and 0.41,
+so numerical dissipation influences the "how much did it stir" number. APIC was not adopted as default:
+it matches PIC/FLIP within noise at higher bookkeeping cost; it stays available as a setting.
+
+## Controls and comparisons
+
+| Case                         | Poured                  | Survivor S (2 cm) start → end | Meaning                               |
+| ---------------------------- | ----------------------- | ----------------------------- | ------------------------------------- |
+| Still pot, 7 s               | 0                       | 0.531 → 0.517                 | numerical drift baseline              |
+| Tilt 4° and return, no spill | 0                       | 0.530 → 0.506                 | motion alone rearranges little        |
+| Gentle pour                  | 399.6 mL                | 0.541 → 0.362                 | pouring clearly rearranges what stays |
+| German glass teapot          | 397.1 mL, 0 / 37 / 63 % | 0.447 → 0.364                 | top lip pours the top layer           |
+| Pitcher (rim lip)            | 401.1 mL, 1 / 41 / 58 % | 0.487 → 0.344                 | rim pours from the surface            |
+| Repeated 2 × 200 mL          | 400.7 mL                | 0.533 → 0.311                 | repeated tilting mixes more           |
+
+## Performance
+
+Solver throughput, simulated seconds per wall-clock second (`benchmarks/perf.json`, default pour, Node):
+see the file for the current numbers; the browser figures in `benchmarks/browser.json` include worker
+messaging and metrics. At the default 44 cells the simulation runs close to real time; 96 and 128 cells
+run slower than real time, and the UI states the achieved fraction instead of taking larger steps.
+
+## Not done (needs the owner or a later version)
+
+- Physical experiments (dyed cold-water pours, collected mass, filmed tilt) and comparison.
+- A converged 3D reference simulation; the 2D slice cannot represent flow around the pot's sides.
+- A standard natural-convection benchmark (e.g. differentially heated cavity) for the thermal mode.
