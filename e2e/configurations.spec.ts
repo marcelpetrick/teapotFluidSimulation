@@ -19,18 +19,20 @@ interface Case {
   poured: [number, number];
   /** Optional upper bound for the bottom-layer share of the poured tea. */
   maxBottomShare?: number;
+  /** Simulated seconds: covers the pour, the return and settling (keeps CI fast). */
+  duration: number;
 }
 
 const CASES: Case[] = [
-  { preset: 'teapot-gentle', poured: [380, 420] },
-  { preset: 'teapot-fast', poured: [380, 420] },
-  { preset: 'teapot-slow', poured: [380, 420] },
-  { preset: 'glass-gentle', poured: [380, 420], maxBottomShare: 0.02 },
-  { preset: 'pitcher-gentle', poured: [380, 420], maxBottomShare: 0.05 },
-  { preset: 'teapot-repeat', poured: [380, 420] },
-  { preset: 'thermal-stratified', poured: [370, 430] },
-  { preset: 'teapot-still', poured: [0, 0] },
-  { preset: 'teapot-tilt', poured: [0, 0] },
+  { preset: 'teapot-gentle', poured: [380, 420], duration: 7 },
+  { preset: 'teapot-fast', poured: [380, 420], duration: 6 },
+  { preset: 'teapot-slow', poured: [380, 420], duration: 10 },
+  { preset: 'glass-gentle', poured: [380, 420], maxBottomShare: 0.02, duration: 12 },
+  { preset: 'pitcher-gentle', poured: [380, 420], maxBottomShare: 0.05, duration: 9 },
+  { preset: 'teapot-repeat', poured: [380, 420], duration: 14 },
+  { preset: 'thermal-stratified', poured: [370, 430], duration: 7 },
+  { preset: 'teapot-still', poured: [0, 0], duration: 3 },
+  { preset: 'teapot-tilt', poured: [0, 0], duration: 6 },
 ];
 
 for (const c of CASES) {
@@ -38,9 +40,9 @@ for (const c of CASES) {
     page,
   }) => {
     test.setTimeout(180_000);
-    await page.goto(`./?preset=${c.preset}`);
+    await page.goto(`./?preset=${c.preset}&duration=${c.duration}`);
     await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });
-    await page.locator('#speed').selectOption('2');
+    await page.locator('#speed').selectOption('4');
     await page.locator('#pour').click();
     await expect(page.locator('#status')).toContainText('finished', { timeout: 170_000 });
     const o = (await page.evaluate(`(() => {
@@ -61,5 +63,9 @@ for (const c of CASES) {
     expect(o.lostMl).toBe(0);
     if (c.maxBottomShare !== undefined) expect(o.fractions![0]).toBeLessThanOrEqual(c.maxBottomShare);
     if (c.poured[1] > 0) await expect(page.locator('#summary')).toContainText('actual');
+    // Results are deterministic: log them so the run documents the outcome.
+    console.log(
+      `${c.preset}: ${o.pouredMl.toFixed(1)} mL, shares ${(o.fractions ?? []).map((f) => (f * 100).toFixed(0)).join('/')} %`,
+    );
   });
 }
