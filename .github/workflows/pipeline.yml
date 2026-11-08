@@ -14,9 +14,11 @@ on:
 permissions:
   contents: read
 
+# A newer push waits for the running pipeline instead of cancelling it, so every
+# green main run reaches the Pages deployment.
 concurrency:
   group: pipeline-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   pipeline:
