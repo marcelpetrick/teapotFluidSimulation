@@ -18,7 +18,7 @@ colour of the layer it started in.
 
 | Teapot with a low spout                                                                                      | German glass teapot (lip at the top)                                       |
 | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| ![Spout teapot pouring](media/pourlab-v0.7.3-cyber-spout-teapot.gif)                                         | ![German glass teapot pouring](media/pourlab-v0.7.3-glass-teapot.gif)      |
+| ![Spout teapot pouring](media/pourlab-v0.7.3-spout-teapot.gif)                                               | ![German glass teapot pouring](media/pourlab-v0.7.3-glass-teapot.gif)      |
 | Liquid leaves through a low inlet: **25 % bottom, 52 % middle, 23 % top** layer, plus what sat in the spout. | Liquid can only leave over the rim: **0 % bottom, 39 % middle, 61 % top**. |
 
 ## What you can do
