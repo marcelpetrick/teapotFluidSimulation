@@ -62,6 +62,17 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 - [`scripts/README.md`](scripts/README.md) — helper scripts (verified commits, GIF rendering, calibration, …)
 - [`vision.md`](vision.md) · [`plan.md`](plan.md) · [`AGENTS.md`](AGENTS.md) — specification, plan, contributor rules
 
+## How it was built
+
+| Area                 | What is used                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Physics              | 2D incompressible Navier–Stokes with a free surface: hybrid particle/grid **PIC/FLIP** (optional **APIC**) on a staggered MAC grid, **PCG pressure solver with MIC(0)** preconditioning, moving-wall boundary fluxes, analytic signed-distance vessel geometry, Boussinesq buoyancy for the thermal mode — all written from the published algorithms, no simulation library |
+| Language and runtime | **TypeScript** (strict), plain DOM, **Canvas 2D** rendering, a dedicated **Web Worker** for the solver, **Web Audio API** for the generated soundscape — no UI framework, no runtime dependencies                                                                                                                                                                           |
+| Build and hosting    | **Vite** static build, **GitHub Pages**, **GitHub Actions**                                                                                                                                                                                                                                                                                                                 |
+| Quality              | **Vitest** with V8 coverage (≥ 95 %), **happy-dom** for UI integration tests, **Playwright** end-to-end tests in Chromium and Firefox, **ESLint** (typescript-eslint), **Prettier**, one `localPipeline.sh` shared by developers and CI                                                                                                                                     |
+| Media and analysis   | **ffmpeg** for the GIFs (rendered deterministically from the real app), benchmark/profiling scripts in `benchmarks/`, a colour-vision-deficiency palette validator for the layer colours                                                                                                                                                                                    |
+| AI                   | Designed from the written specification in [`vision.md`](vision.md) and implemented with **Claude Code** (Anthropic, model **Claude Opus 5.5**): plan, code, tests, reviews and docs, with every commit verified by the full pipeline before it was pushed                                                                                                                  |
+
 ## License
 
 Copyright (C) 2026 Marcel Petrick &lt;mail@marcelpetrick.it&gt;. Free software under the

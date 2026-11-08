@@ -18,6 +18,9 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
   `// Copyright (C) 2026 Marcel Petrick`.
 - Pin dependencies exactly. **TypeScript stays on 6.0.x** until typescript-eslint supports 7.x.
 - Every control in the UI needs a tooltip (`src/ui/help.ts`); a test enforces this.
+- Layer colours in every look must pass the colour-vision-deficiency palette validation; colours always
+  follow the immutable layer labels (glow is drawn underneath, never instead).
+- Sound stays off until the user turns it on; audio is generated (Web Audio), no audio files or network.
 
 ## Physics honesty rules (from the vision)
 

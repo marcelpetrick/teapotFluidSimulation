@@ -39,6 +39,29 @@ Chromium 158, Firefox 159.
 | Browser frame rate       | ≥ 30 rendered fps with responsive controls                 | 60 fps animation; 45 (Chromium) / 47 (Firefox) fresh simulation frames per second             | pass   |
 | Firefox and Chrome       | same preset completes and exports a valid record           | e2e in both, JSON record parsed                                                               | pass   |
 
+## End-to-end configuration checks (`e2e/configurations.spec.ts`, every CI run)
+
+Each common configuration runs to completion in the real browsers (production build, worker) and must
+pour within its range with nothing spilled or lost. Measured on the last local run:
+
+| Preset                    | Chromium | Firefox  | Layer shares bottom / middle / top |
+| ------------------------- | -------- | -------- | ---------------------------------- |
+| Spout teapot, gentle      | 400.2 mL | 400.2 mL | 25 / 52 / 23 %                     |
+| Spout teapot, fast        | 398.5 mL | 398.5 mL | 33 / 51 / 16 %                     |
+| Spout teapot, slow        | 403.9 mL | 401.6 mL | 20 / 52 / 28 %                     |
+| German glass teapot       | 398.5 mL | 400.2 mL | 0 / 39 / 61 %                      |
+| Pitcher                   | 396.9 mL | 400.2 mL | 1 / 41 / 58 %                      |
+| Repeated 2 × 200 mL       | 397.9 mL | 398.7 mL | 21 / 49 / 30 %                     |
+| Warm above cool (thermal) | 399.0 mL | 399.0 mL | 25 / 53 / 22 %                     |
+| Still pot, tilt only      | 0 mL     | 0 mL     | —                                  |
+
+Within one engine a run is reproducible (whole substeps, independent of timing). Between engines a few
+mL can differ because Math functions differ in the last bits and the flow amplifies that; the vision
+accepts this (§11, no bitwise equality across engines).
+
+Phone layout (iPhone 13 viewport, emulated): no horizontal scrolling; the default pour runs at about
+77 % of real time on the emulating laptop. Real-device performance was not measured.
+
 ## Refinement and numerical sensitivity (gentle 400 mL pour, teapot)
 
 | Case                     | Parcels | Poured mL | Bottom / middle / top % | Survivor S (2 cm) start → end |

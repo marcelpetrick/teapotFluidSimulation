@@ -27,7 +27,9 @@ C4Container
   title PourLab - containers (all inside the visitor's browser)
   Person(visitor, "Visitor")
   System_Boundary(browser, "Browser tab") {
-    Container(ui, "Main thread UI", "TypeScript, Canvas 2D", "Controls, settings, shape editor, rendering, charts, tables, exports")
+    Container(ui, "Main thread UI", "TypeScript, Canvas 2D", "Controls, settings, shape editor, rendering, charts, tables, exports, look and mode switches")
+    Container(audio, "Soundscape", "Web Audio API", "Generated space ambience and a pour sound driven by the discharge rate")
+    ContainerDb(prefs, "localStorage", "Per-viewer preferences", "Chosen look and light/dark mode")
     Container(worker, "Simulation worker", "TypeScript Web Worker", "Steps the solver continuously; answers frame requests with the latest state")
     ContainerDb(url, "URL query", "Query string", "All settings incl. a drawn pot: reproducible share links")
   }
@@ -36,6 +38,8 @@ C4Container
   Rel(ui, worker, "init / play / pause / step / tilt / speed / frame / export", "postMessage")
   Rel(worker, ui, "ready / frame (transferable snapshots) / export / error", "postMessage")
   Rel(ui, url, "Reads and writes settings")
+  Rel(ui, audio, "enable / volume / pour level")
+  Rel(ui, prefs, "Remembers look and mode")
   Rel(pages, ui, "Static files")
 ```
 
@@ -49,6 +53,8 @@ C4Component
     Component(editor, "ShapeEditor", "src/ui/shapeEditor.ts", "Drag-and-drop pot outline")
     Component(scene, "Scene renderer", "src/render/scene.ts", "Vessel, parcels, pathlines, arrows, glass, initial map")
     Component(charts, "Charts", "src/render/charts.ts", "Bins, bias, time series")
+    Component(help, "Tooltips", "src/ui/help.ts", "What every control is and what it influences")
+    Component(sound, "Soundscape", "src/audio/soundscape.ts", "Drones, space wind, shimmer, pour noise")
   }
   Container_Boundary(wk, "Worker") {
     Component(host, "SimulationHost", "src/worker/host.ts", "Command handling, time-budgeted pumping, metrics snapshots")
@@ -61,6 +67,8 @@ C4Component
   }
   Component(config, "Config", "src/sim/config.ts", "Presets, settings validation, URL round-trip, drawn pots")
   Rel(app, editor, "hosts")
+  Rel(app, help, "applies")
+  Rel(app, sound, "drives")
   Rel(app, scene, "draws with")
   Rel(app, charts, "draws with")
   Rel(app, config, "validates settings")

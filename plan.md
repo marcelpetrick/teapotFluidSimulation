@@ -51,8 +51,18 @@ status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 - [x] Playwright e2e in Chromium and Firefox under the Pages sub-path
 - [x] Refinement, APIC comparison, dissipation sweep, performance — `docs/validation.md`
 - [x] README, physics, architecture (C4), validation, sources, third-party notices, showcase GIFs
-- [x] `/reviewBranch` findings fixed; dependencies checked (`/updateDependencies`)
-- [ ] `/githubAbout`, public release
+- [x] `/reviewBranch` findings fixed (two rounds); dependencies checked (`/updateDependencies`)
+- [x] `/githubAbout` applied; public releases v0.5.5 and v0.6.2
+- [x] End-to-end runs of the nine most common configurations in Chromium and Firefox, checked physically
+
+### Product extras (owner requests)
+
+- [x] Pot shape editor, manual tilt, particles per cell, finer resolution, tooltips on every control
+- [x] German glass teapot model
+- [x] Switchable cyber neon look (validated neon palette), light/dark/auto mode buttons
+- [x] Generated space soundscape and pour sound (Web Audio, off by default)
+- [x] Showcase GIFs in `media/` (lab and cyber looks), named with the rendered version
+- [ ] Measure performance on a real phone
 
 ### E — thermal and higher fidelity (§13 E, Versions 2–3)
 
