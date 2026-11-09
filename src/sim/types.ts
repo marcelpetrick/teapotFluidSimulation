@@ -16,9 +16,10 @@ export const STATUS_SPILLED = 2;
 export const STATUS_LOST = 3;
 
 export type TransferScheme = 'flip' | 'apic';
-export type WallTreatment = 'free-slip';
+/** Tangential wall condition for the viscous term (no penetration is always enforced). */
+export type WallTreatment = 'free-slip' | 'no-slip';
 export type ThermalMode = 'off' | 'passive' | 'coupled';
-export type VesselKind = 'tank' | 'pitcher' | 'teapot' | 'glass' | 'custom';
+export type VesselKind = 'tank' | 'pitcher' | 'teapot' | 'glass' | 'custom' | 'cavity';
 
 /** Vessel geometry, all lengths in metres, in pot-local coordinates (y up, pivot at local origin offset). */
 export interface VesselConfig {
@@ -93,6 +94,13 @@ export interface ThermalConfig {
   wallHeatTransfer: number;
   surfaceHeatTransfer: number;
   /** Waiting period before motion starts during which cooling acts (s). Included in startDelay. */
+  /**
+   * Optional fixed-temperature walls (K) for verification (differentially heated cavity): liquid
+   * cells next to the left/right half of the walls exchange heat with these temperatures
+   * (half-cell conduction); the other walls are then adiabatic.
+   */
+  hotWallTemperature?: number;
+  coldWallTemperature?: number;
 }
 
 export interface ExperimentConfig {
@@ -130,6 +138,8 @@ export interface ExperimentConfig {
   densityCorrection: number;
   /** Apply the physical viscosity term (explicit). */
   viscosity: boolean;
+  /** Tangential wall condition used by the viscous term (default free-slip). */
+  wallTreatment?: WallTreatment;
   cfl: number;
   maxSubstep: number;
   pressureTolerance: number;

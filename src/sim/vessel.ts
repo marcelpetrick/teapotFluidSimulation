@@ -174,6 +174,22 @@ export function buildVessel(c: VesselConfig): Vessel {
     envelope.x1 = x1 + c.wall * 2;
     envelope.y0 = y0 - c.wall * 2;
     envelope.y1 = y1 + 1.0;
+  } else if (c.kind === 'cavity') {
+    // Closed square box (verification): walls all round, including a lid; no free surface.
+    const xl = -hw;
+    const xr2 = c.innerWidth + hw;
+    const yb = -hw;
+    const yt = c.innerHeight + hw;
+    polylines = [
+      [
+        [xl, yt],
+        [xl, yb],
+        [xr2, yb],
+        [xr2, yt],
+        [xl, yt],
+      ],
+    ];
+    envelope.y1 = c.innerHeight + c.wall * 2;
   } else if (c.kind === 'tank') {
     polylines = [bodyPath(c, c.innerHeight)];
   } else if (c.kind === 'pitcher' || c.kind === 'glass') {

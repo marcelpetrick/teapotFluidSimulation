@@ -63,7 +63,14 @@ export function referenceFillHeight(kind: VesselConfig['kind']): number {
   return kind === 'glass' ? 0.085 : 0.1;
 }
 
-export const VESSEL_KINDS: VesselConfig['kind'][] = ['teapot', 'glass', 'pitcher', 'tank', 'custom'];
+export const VESSEL_KINDS: VesselConfig['kind'][] = [
+  'teapot',
+  'glass',
+  'pitcher',
+  'tank',
+  'custom',
+  'cavity',
+];
 
 /** Highest fill level (m above the inner floor) that does not overflow at rest. */
 export function maxFillHeight(v: VesselConfig): number {
@@ -275,6 +282,45 @@ function make(id: string, name: string, mutate: (c: ExperimentConfig) => void): 
   };
 }
 
+/** de Vahl Davis (1983) benchmark Nusselt numbers for the differentially heated square cavity (Pr 0.71). */
+export const DE_VAHL_DAVIS_NU: Record<number, number> = { 1e3: 1.118, 1e4: 2.243, 1e5: 4.519 };
+
+/**
+ * Differentially heated square cavity (verification of the thermal mode): closed 10 cm box filled
+ * with liquid, hot left wall, cold right wall, adiabatic floor and lid, no-slip walls, Boussinesq
+ * buoyancy. Diffusivities are set so the Rayleigh number equals `ra` at Prandtl number `pr`.
+ */
+export function cavityConfig(ra: number, cells = 44, pr = 0.71): ExperimentConfig {
+  const c = baseConfig();
+  c.presetId = 'thermal-cavity';
+  c.name = `Differentially heated cavity, Ra = ${ra.toExponential(0)} (verification)`;
+  const L = 0.1;
+  const dT = 10;
+  c.vessel = { ...defaultVessel('tank'), kind: 'cavity', innerWidth: L, innerHeight: L, cornerRadius: 0 };
+  c.fillHeight = L;
+  c.initialVolume = 1000 * ML;
+  c.pivotLocal = [L / 2, L / 2];
+  c.cellsAcrossBody = cells;
+  c.motion = { ...defaultMotion(), kind: 'still', targetVolume: 0 };
+  c.thermalExpansion = 1e-3;
+  const alpha = Math.sqrt((c.gravity * c.thermalExpansion * dT * L ** 3) / (ra * pr));
+  c.thermalDiffusivity = alpha;
+  c.kinematicViscosity = pr * alpha;
+  c.wallTreatment = 'no-slip';
+  c.thermal = {
+    ...c.thermal,
+    mode: 'coupled',
+    bottomTemperature: 300,
+    topTemperature: 300,
+    hotWallTemperature: 300 + dT / 2,
+    coldWallTemperature: 300 - dT / 2,
+    wallHeatTransfer: 0,
+    surfaceHeatTransfer: 0,
+  };
+  c.duration = 60;
+  return fitDomain(c);
+}
+
 export const PRESETS: PresetInfo[] = [
   {
     id: 'teapot-gentle',
@@ -397,6 +443,14 @@ export const PRESETS: PresetInfo[] = [
     }),
   },
   {
+    id: 'thermal-cavity',
+    label: 'Heated cavity, Ra 1e4 (thermal benchmark)',
+    purpose:
+      'Verification of the thermal mode: hot left wall, cold right wall, closed box. The measured Nusselt number is compared with de Vahl Davis (1983).',
+    status: 'Verification',
+    build: () => cavityConfig(1e4),
+  },
+  {
     id: 'tank-rest',
     label: 'Hydrostatic tank (numerical test)',
     purpose: 'Verification: a resting open tank must stay at rest with no volume loss.',
@@ -510,7 +564,7 @@ export const LIMITS: Record<
   topC: { min: 20, max: 99, label: 'Top temperature', unit: 'degC', step: 0.5 },
   bottomC: { min: 20, max: 99, label: 'Bottom temperature', unit: 'degC', step: 0.5 },
   coolingWm2K: { min: 0, max: 10000, label: 'Cooling coefficient', unit: 'W/m2K', step: 10 },
-  duration: { min: 2, max: 40, label: 'Simulated duration', unit: 's', step: 1 },
+  duration: { min: 2, max: 120, label: 'Simulated duration', unit: 's', step: 1 },
   seed: { min: 1, max: 999999, label: 'Seed', unit: '', step: 1 },
 };
 
@@ -536,7 +590,8 @@ export function validateSettings(s: UserSettings): string[] {
     errs.push(...shapeErrs);
     if (pts && shapeErrs.length === 0) vessel = vesselFromProfile(pts);
   } else if (VESSEL_KINDS.includes(s.vessel)) vessel = defaultVessel(s.vessel);
-  if (vessel && Number.isFinite(s.fillMl)) {
+  // A closed cavity is always completely full; its fill setting does not apply.
+  if (vessel && vessel.kind !== 'cavity' && Number.isFinite(s.fillMl)) {
     const maxMl = maxFillMl(vessel);
     if (s.fillMl > maxMl) errs.push(`This pot overflows above ${maxMl} mL: lower the fill.`);
   }
@@ -565,8 +620,10 @@ export function configFromSettings(s: UserSettings): ExperimentConfig {
     c.motion.maxAngleDeg = 90;
   }
   // Fill height scales with requested volume relative to the 1.5 L reference fill.
-  c.fillHeight = referenceFillHeight(c.vessel.kind) * (s.fillMl / 1500);
-  c.initialVolume = s.fillMl * ML;
+  if (c.vessel.kind !== 'cavity') {
+    c.fillHeight = referenceFillHeight(c.vessel.kind) * (s.fillMl / 1500);
+    c.initialVolume = s.fillMl * ML;
+  }
   if (c.motion.kind === 'pour') c.motion.targetVolume = s.targetMl * ML;
   c.motion.tiltDuration = s.tiltDuration;
   c.motion.holdAngleDeg = s.holdAngle;

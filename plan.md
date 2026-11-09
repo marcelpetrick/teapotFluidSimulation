@@ -68,7 +68,7 @@ status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 
 - [x] Passive and Boussinesq-coupled temperature, diffusion, wall/surface cooling
 - [x] Thermal verification: analytic diffusion decay, buoyancy direction, heat inventory
-- [ ] Standard natural-convection benchmark (differentially heated cavity)
+- [x] Standard natural-convection benchmark: differentially heated cavity vs de Vahl Davis — `benchmarks/cavity.ts`, `tests/cavity.test.ts`
 - [ ] Physical experiments and a 3D reference solver — need the owner (§14)
 
 ## Owner tasks (vision §14)

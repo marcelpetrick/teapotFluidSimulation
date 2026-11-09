@@ -39,6 +39,28 @@ Chromium 158, Firefox 159.
 | Browser frame rate       | ≥ 30 rendered fps with responsive controls                 | 60 fps animation; 45 (Chromium) / 47 (Firefox) fresh simulation frames per second             | pass   |
 | Firefox and Chrome       | same preset completes and exports a valid record           | e2e in both, JSON record parsed                                                               | pass   |
 
+## Thermal benchmark: differentially heated cavity (`benchmarks/cavity.ts`)
+
+Standard natural-convection test (de Vahl Davis 1983, Pr = 0.71): closed square box filled with liquid,
+hot left wall, cold right wall, adiabatic floor and lid, no-slip walls, Boussinesq buoyancy. Runs until
+both wall Nusselt numbers are steady and balanced (or 150 s). Reference Nu: 1.118 / 2.243 / 4.519.
+
+| Ra  | Cells | Nu hot | Nu cold | Nu mean | Error                      |
+| --- | ----- | ------ | ------- | ------- | -------------------------- |
+| 10³ | 32    | 1.146  | 1.157   | 1.151   | +3.0 %                     |
+| 10³ | 48    | 1.128  | 1.157   | 1.142   | +2.2 %                     |
+| 10⁴ | 32    | 2.159  | 2.187   | 2.173   | −3.1 %                     |
+| 10⁴ | 48    | 2.269  | 2.283   | 2.276   | +1.5 %                     |
+| 10⁵ | 32    | 3.829  | 4.052   | 3.940   | −12.8 % (not fully steady) |
+| 10⁵ | 48    | 4.169  | 4.138   | 4.153   | −8.1 %                     |
+| 10⁵ | 64    | 4.373  | 4.455   | 4.414   | −2.3 %                     |
+
+Reading: the thermal mode reproduces the benchmark within ~3 % where the boundary layers are resolved,
+and converges toward the reference with refinement at Ra = 10⁵ (thin boundary layers). The vision's
+precondition for interpreting tea thermal experiments (§11) is met for laminar convection at these
+Rayleigh numbers; real tea-pot convection (Ra ≫ 10⁸) remains beyond a 2D model. A fast version
+(Ra = 10³, 24 cells, within 10 %) runs in the unit tests on every commit.
+
 ## End-to-end configuration checks (`e2e/configurations.spec.ts`, every CI run)
 
 Each common configuration runs to completion in the real browsers (production build, worker) and must
@@ -122,4 +144,5 @@ results. The next real step would be a multigrid pressure solver or a WebAssembl
 
 - Physical experiments (dyed cold-water pours, collected mass, filmed tilt) and comparison.
 - A converged 3D reference simulation; the 2D slice cannot represent flow around the pot's sides.
-- A standard natural-convection benchmark (e.g. differentially heated cavity) for the thermal mode.
+- Thermal validation against measured cooling of a real pot (the convection benchmark above verifies the
+  implementation, not the tea).

@@ -1,0 +1,97 @@
+{
+ "generatedAt": "2026-11-09T12:15:22.335Z",
+ "reference": "de Vahl Davis (1983), Pr = 0.71",
+ "rows": [
+  {
+   "rayleigh": 1000,
+   "cells": 32,
+   "simulatedSeconds": 19.039972583044477,
+   "wallSeconds": 11.546276973,
+   "nusseltHot": 1.1455433903838412,
+   "nusseltCold": 1.1566770465116065,
+   "nusseltMean": 1.151110218447724,
+   "reference": 1.118,
+   "errorPercent": 2.9615580006908657,
+   "maxSpeed": 0.08177675414070582,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 1000,
+   "cells": 48,
+   "simulatedSeconds": 15.027638622945961,
+   "wallSeconds": 45.940680129,
+   "nusseltHot": 1.1275167718296983,
+   "nusseltCold": 1.157009326768366,
+   "nusseltMean": 1.1422630492990322,
+   "reference": 1.118,
+   "errorPercent": 2.1702190786254123,
+   "maxSpeed": 0.04230609752687027,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 10000,
+   "cells": 32,
+   "simulatedSeconds": 25.04374720668719,
+   "wallSeconds": 14.970118134,
+   "nusseltHot": 2.1589496608529317,
+   "nusseltCold": 2.1874733900980914,
+   "nusseltMean": 2.1732115254755113,
+   "reference": 2.243,
+   "errorPercent": -3.1113898584257047,
+   "maxSpeed": 0.06522917653358253,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 10000,
+   "cells": 48,
+   "simulatedSeconds": 25.05055906832205,
+   "wallSeconds": 42.0756013,
+   "nusseltHot": 2.2686977851295524,
+   "nusseltCold": 2.283386996396689,
+   "nusseltMean": 2.276042390763121,
+   "reference": 2.243,
+   "errorPercent": 1.4731337834650464,
+   "maxSpeed": 0.06351564861683905,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 100000,
+   "cells": 32,
+   "simulatedSeconds": 150,
+   "wallSeconds": 82.141303743,
+   "nusseltHot": 3.82852603331595,
+   "nusseltCold": 4.051950479303255,
+   "nusseltMean": 3.9402382563096023,
+   "reference": 4.519,
+   "errorPercent": -12.807296828731971,
+   "maxSpeed": 0.04602125923190188,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 100000,
+   "cells": 48,
+   "simulatedSeconds": 38.07811783569008,
+   "wallSeconds": 58.981342527,
+   "nusseltHot": 4.169009998534034,
+   "nusseltCold": 4.137765897822616,
+   "nusseltMean": 4.153387948178326,
+   "reference": 4.519,
+   "errorPercent": -8.090552153610856,
+   "maxSpeed": 0.05315697999099309,
+   "pressureFailures": 0
+  },
+  {
+   "rayleigh": 100000,
+   "cells": 64,
+   "simulatedSeconds": 72.1310373451935,
+   "wallSeconds": 259.41963446200003,
+   "nusseltHot": 4.373035068418846,
+   "nusseltCold": 4.455436463626485,
+   "nusseltMean": 4.414235766022665,
+   "reference": 4.519,
+   "errorPercent": -2.31830568659736,
+   "maxSpeed": 0.05398013093407969,
+   "pressureFailures": 0
+  }
+ ]
+}

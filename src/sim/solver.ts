@@ -373,7 +373,14 @@ export class Simulation {
     const R = Math.hypot(cfg.domainWidth, cfg.domainHeight);
     const wall = Math.abs(this.pose.omega) * R;
     const speed = umax + SQRT5 * Math.sqrt(h * cfg.gravity) + wall;
-    return Math.min(cfg.maxSubstep, (cfg.cfl * h) / speed);
+    let dt = Math.min(cfg.maxSubstep, (cfg.cfl * h) / speed);
+    // Explicit viscosity and heat diffusion stay stable for D dt / h^2 <= 0.2 (only binding when
+    // the diffusivities are large, e.g. in the convection benchmark).
+    if (cfg.viscosity && cfg.kinematicViscosity > 0)
+      dt = Math.min(dt, (0.2 * h * h) / cfg.kinematicViscosity);
+    if (cfg.thermal.mode !== 'off' && cfg.thermalDiffusivity > 0)
+      dt = Math.min(dt, (0.2 * h * h) / cfg.thermalDiffusivity);
+    return dt;
   }
 
   step(dt: number): void {
@@ -688,7 +695,22 @@ export class Simulation {
             ? 1
             : 0;
       }
-    const lap = (f: Float64Array, tmp: Float64Array, mask: Uint8Array, w: number, hgt: number) => {
+    const noSlip = cfg.wallTreatment === 'no-slip';
+    const om = this.pose.omega;
+    const pose = this.pose;
+    // `tangentialAlongI`: for v the walls tangential to the flow are left/right neighbours (i +- 1);
+    // for u they are the neighbours above/below (j +- 1). No-slip uses a ghost value mirrored about
+    // the wall (half a cell away): contribution 2 (u_wall - u).
+    const lap = (
+      f: Float64Array,
+      tmp: Float64Array,
+      mask: Uint8Array,
+      solid: Uint8Array,
+      w: number,
+      hgt: number,
+      tangentialAlongI: boolean,
+      wallVel: (i: number, j: number) => number,
+    ) => {
       tmp.set(f);
       for (let j = 0; j < hgt; j++)
         for (let i = 0; i < w; i++) {
@@ -697,15 +719,23 @@ export class Simulation {
           const fc = f[c];
           let s = 0;
           if (i > 0 && mask[c - 1]) s += f[c - 1] - fc;
+          else if (noSlip && tangentialAlongI && (i === 0 || solid[c - 1])) s += 2 * (wallVel(i - 1, j) - fc);
           if (i < w - 1 && mask[c + 1]) s += f[c + 1] - fc;
+          else if (noSlip && tangentialAlongI && (i === w - 1 || solid[c + 1]))
+            s += 2 * (wallVel(i + 1, j) - fc);
           if (j > 0 && mask[c - w]) s += f[c - w] - fc;
+          else if (noSlip && !tangentialAlongI && (j === 0 || solid[c - w]))
+            s += 2 * (wallVel(i, j - 1) - fc);
           if (j < hgt - 1 && mask[c + w]) s += f[c + w] - fc;
+          else if (noSlip && !tangentialAlongI && (j === hgt - 1 || solid[c + w]))
+            s += 2 * (wallVel(i, j + 1) - fc);
           tmp[c] = fc + k * s;
         }
       f.set(tmp);
     };
-    lap(this.u, this.uTmp, um, nx + 1, ny);
-    lap(this.v, this.vTmp, vm, nx, ny + 1);
+    // Rigid wall velocity components (zero for the static domain border and a resting vessel).
+    lap(this.u, this.uTmp, um, this.uSolid, nx + 1, ny, false, (_i, j) => -om * ((j + 0.5) * h - pose.pwy));
+    lap(this.v, this.vTmp, vm, this.vSolid, nx, ny + 1, true, (i) => om * ((i + 0.5) * h - pose.pwx));
   }
 
   /** Solid faces carry the normal component of the rigid wall velocity omega x (x - pivot). */
@@ -1157,6 +1187,9 @@ export class Simulation {
     const Ta = th.ambientTemperature;
     cellDT.fill(0);
     let lostPerDepth = 0;
+    const fixedWalls = th.hotWallTemperature !== undefined && th.coldWallTemperature !== undefined;
+    const Th = th.hotWallTemperature ?? Ta;
+    const Tc = th.coldWallTemperature ?? Ta;
     for (let j = 1; j < ny - 1; j++)
       for (let i = 1; i < nx - 1; i++) {
         const c = i + j * nx;
@@ -1168,20 +1201,30 @@ export class Simulation {
         nbs[1] = c + 1;
         nbs[2] = c - nx;
         nbs[3] = c + nx;
-        for (let k = 0; k < 4; k++) {
-          const d = nbs[k];
-          if (cell[d] === CELL_FLUID) dT += kd * (cellT[d] - T);
-          else if (cell[d] === CELL_SOLID) dT -= kw * (T - Ta);
-          else dT -= ks * (T - Ta);
-        }
-        cellDT[c] = dT;
-        // Heat crossing boundaries (diffusive exchange between fluid cells cancels in the sum).
         let boundary = 0;
         for (let k = 0; k < 4; k++) {
           const d = nbs[k];
-          if (cell[d] === CELL_SOLID) boundary += kw * (T - Ta);
-          else if (cell[d] === CELL_AIR) boundary += ks * (T - Ta);
+          if (cell[d] === CELL_FLUID) dT += kd * (cellT[d] - T);
+          else if (cell[d] === CELL_SOLID) {
+            if (fixedWalls) {
+              // Side walls at fixed temperature (wall half a cell away); floor and lid adiabatic.
+              if (k < 2) {
+                const Tw = k === 0 ? Th : Tc;
+                const q = 2 * kd * (Tw - T);
+                dT += q;
+                boundary -= q;
+              }
+            } else {
+              dT -= kw * (T - Ta);
+              boundary += kw * (T - Ta);
+            }
+          } else {
+            dT -= ks * (T - Ta);
+            boundary += ks * (T - Ta);
+          }
         }
+        cellDT[c] = dT;
+        // Heat crossing boundaries (diffusive exchange between fluid cells cancels in the sum).
         lostPerDepth += boundary;
       }
     // Boundary heat in units of "parcel-kelvin" so it is comparable with the parcel inventory.
@@ -1216,6 +1259,39 @@ export class Simulation {
       }
       if (wsum > 1e-9) this.temperature[p] += acc / wsum;
     }
+  }
+
+  /**
+   * Mean Nusselt numbers on the hot (left) and cold (right) side walls of a differentially heated
+   * cavity: Nu = (L / dT) * mean wall-normal temperature gradient, the gradient taken between the
+   * wall and the adjacent liquid cell centre (half a cell). Null without fixed-temperature walls.
+   */
+  wallNusselt(): { hot: number; cold: number } | null {
+    const th = this.cfg.thermal;
+    if (th.hotWallTemperature === undefined || th.coldWallTemperature === undefined || th.mode === 'off')
+      return null;
+    const { nx, ny, h, cell, cellT } = this;
+    const dT = th.hotWallTemperature - th.coldWallTemperature;
+    const L = this.cfg.vessel.innerWidth;
+    let hot = 0;
+    let nh = 0;
+    let cold = 0;
+    let nc = 0;
+    for (let j = 1; j < ny - 1; j++)
+      for (let i = 1; i < nx - 1; i++) {
+        const c = i + j * nx;
+        if (cell[c] !== CELL_FLUID) continue;
+        if (cell[c - 1] === CELL_SOLID) {
+          hot += (th.hotWallTemperature - cellT[c]) / (h / 2);
+          nh++;
+        }
+        if (cell[c + 1] === CELL_SOLID) {
+          cold += (cellT[c] - th.coldWallTemperature) / (h / 2);
+          nc++;
+        }
+      }
+    if (nh === 0 || nc === 0 || dT === 0) return null;
+    return { hot: ((hot / nh) * L) / dT, cold: ((cold / nc) * L) / dT };
   }
 
   /** Sum of parcel temperatures (parcel-kelvin); multiply by rho cp Vp for joules. */
