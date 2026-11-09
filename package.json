@@ -1,6 +1,6 @@
 {
   "name": "pourlab",
-  "version": "0.9.5",
+  "version": "0.10.0",
   "private": true,
   "description": "PourLab: browser 2D PIC/FLIP experiment showing where poured tea comes from and how much pouring mixes the pot.",
   "license": "GPL-3.0-or-later",
@@ -26,6 +26,7 @@
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.65.0",
     "@types/node": "26.6.6",
+    "@types/three": "0.187.0",
     "@vitest/coverage-v8": "5.1.0",
     "eslint": "10.14.0",
     "happy-dom": "21.0.4",
@@ -43,5 +44,8 @@
     "singleQuote": true,
     "printWidth": 110,
     "trailingComma": "all"
+  },
+  "dependencies": {
+    "three": "0.187.0"
   }
 }

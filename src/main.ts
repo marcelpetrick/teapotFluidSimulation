@@ -34,6 +34,10 @@ const app = new App({
   copy: (t) => navigator.clipboard.writeText(t),
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   version: __APP_VERSION__,
+  open3d: (canvas, theme) =>
+    import('./view3d/load').then((m) =>
+      m.open3d(canvas, theme, `${import.meta.env.BASE_URL}data/pour3d.bin.gz`),
+    ),
   audio: () => {
     const Ctor =
       window.AudioContext ??

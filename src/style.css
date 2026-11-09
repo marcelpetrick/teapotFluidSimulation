@@ -490,3 +490,53 @@ td:first-child {
   border-color: var(--accent);
   color: var(--on-accent);
 }
+
+.view3d {
+  padding: 0 16px 16px;
+}
+.view3d-stage {
+  position: relative;
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#view3dCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 560;
+  touch-action: none;
+  cursor: grab;
+}
+.v3overlay {
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  max-width: min(420px, 70%);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+.v3overlay p {
+  margin: 0 0 4px;
+}
+.v3bar {
+  display: flex;
+  height: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--grid);
+}
+.v3bar span:nth-child(1) {
+  background: var(--origin-0);
+}
+.v3bar span:nth-child(2) {
+  background: var(--origin-1);
+}
+.v3bar span:nth-child(3) {
+  background: var(--origin-2);
+}
+#v3scrub {
+  flex: 1 1 200px;
+}

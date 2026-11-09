@@ -61,6 +61,8 @@ export interface AppDeps {
   version: string;
   /** Creates the Web Audio context on demand (null when unsupported). */
   audio: AudioFactory;
+  /** Lazily opens the recorded 3D view in a canvas (loads three.js and the recording on demand). */
+  open3d?: (canvas: HTMLCanvasElement, theme: Viewer3DTheme) => Promise<Viewer3D>;
   /** Per-viewer preferences (e.g. the chosen look); may fail silently. */
   prefs: { get(key: string): string | null; set(key: string, value: string): void };
 }
@@ -82,6 +84,27 @@ export interface RunSummary {
   segregationNow: string;
   segregationSurvivorInitial: string;
   pressureFailures: number;
+}
+
+/** What the App needs from the 3D viewer (kept structural so three.js stays out of the main bundle). */
+export interface Viewer3DTheme {
+  background: string;
+  wall: string;
+  layers: [string, string, string];
+}
+export interface Viewer3D {
+  readonly frames: number;
+  readonly frame: number;
+  readonly time: number;
+  playing: boolean;
+  speed: number;
+  onFrame: ((frame: number) => void) | null;
+  seek(frame: number): void;
+  resetView(): void;
+  resize(width: number, height: number): void;
+  poured(): number[];
+  angleDeg(): number;
+  applyTheme(theme: Viewer3DTheme): void;
 }
 
 const MAX_STORED_FRAMES = 900;
@@ -177,6 +200,7 @@ export class App {
     this.render();
     this.updatePanels();
     this.editor?.render();
+    this.viewer3d?.applyTheme(this.theme3d());
   }
 
   /** Light, dark, or follow the system ('auto'). Remembered per viewer. */
@@ -190,6 +214,7 @@ export class App {
     this.render();
     this.updatePanels();
     this.editor?.render();
+    this.viewer3d?.applyTheme(this.theme3d());
   }
 
   async toggleSound(): Promise<void> {
@@ -415,6 +440,23 @@ export class App {
       this.post({ type: 'step' });
     });
     on('reset', 'click', () => this.applySettings(this.settings, false));
+    on('open3d', 'click', () => void this.open3D());
+    on('v3play', 'click', () => {
+      if (!this.viewer3d) return;
+      this.viewer3d.playing = !this.viewer3d.playing;
+      const b = this.el('v3play');
+      b.textContent = this.viewer3d.playing ? 'Pause' : 'Play';
+      b.setAttribute('aria-pressed', String(this.viewer3d.playing));
+    });
+    on('v3restart', 'click', () => {
+      this.viewer3d?.seek(0);
+      if (this.viewer3d) this.viewer3d.playing = true;
+    });
+    on('v3speed', 'change', (e) => {
+      if (this.viewer3d) this.viewer3d.speed = Number((e.target as HTMLSelectElement).value);
+    });
+    on('v3reset', 'click', () => this.viewer3d?.resetView());
+    on('v3scrub', 'input', (e) => this.viewer3d?.seek(Number((e.target as HTMLInputElement).value)));
     on('skin', 'change', (e) =>
       this.applySkin((e.target as HTMLSelectElement).value === 'cyber' ? 'cyber' : 'lab'),
     );
@@ -478,6 +520,57 @@ export class App {
 
   private wantCsv = false;
   editor: ShapeEditor | null = null;
+  viewer3d: Viewer3D | null = null;
+
+  /** Colours for the 3D view from the current look. */
+  theme3d(): Viewer3DTheme {
+    const t = this.theme();
+    const bg = this.d.doc.defaultView?.getComputedStyle(this.d.doc.body).backgroundColor || '';
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(bg);
+    const background = m ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : '#fcfcfb';
+    return { background, wall: t.wall, layers: [t.origins[0], t.origins[1], t.origins[2]] };
+  }
+
+  async open3D(): Promise<void> {
+    if (!this.d.open3d) return;
+    const status = this.el('v3status');
+    status.textContent = 'Loading the 3D recording...';
+    const canvas = this.el<HTMLCanvasElement>('view3dCanvas');
+    this.el('view3dBox').hidden = false;
+    try {
+      this.viewer3d = await this.d.open3d(canvas, this.theme3d());
+    } catch (e) {
+      this.el('view3dBox').hidden = true;
+      status.textContent = `3D view unavailable: ${e instanceof Error ? e.message : String(e)}`;
+      return;
+    }
+    const v = this.viewer3d;
+    this.el('open3d').hidden = true;
+    status.textContent =
+      'Recorded 3D simulation (playback). Drag to rotate, scroll to zoom, right-drag to pan.';
+    const scrub = this.el<HTMLInputElement>('v3scrub');
+    scrub.max = String(v.frames - 1);
+    const rect = canvas.getBoundingClientRect();
+    v.resize(Math.max(320, rect.width || canvas.width), Math.max(200, rect.height || canvas.height));
+    v.onFrame = (f) => this.update3dInfo(f);
+    this.update3dInfo(v.frame);
+  }
+
+  private update3dInfo(frame: number): void {
+    const v = this.viewer3d;
+    if (!v) return;
+    this.el<HTMLInputElement>('v3scrub').value = String(frame);
+    const p = v.poured();
+    const total = p[0] + p[1] + p[2];
+    const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
+    this.el('v3info').textContent =
+      `t = ${v.time.toFixed(1)} s, tilt ${v.angleDeg().toFixed(1)} deg, poured ${total.toFixed(0)} mL` +
+      (total > 0
+        ? `: ${pct(p[0]).toFixed(0)} % bottom, ${pct(p[1]).toFixed(0)} % middle, ${pct(p[2]).toFixed(0)} % top`
+        : '');
+    const spans = this.el('v3bar').querySelectorAll('span');
+    p.forEach((x, k) => ((spans[k] as HTMLElement).style.width = `${pct(x)}%`));
+  }
 
   /** Text for a hover position on a chart (x as a fraction of the plot width), or null. */
   chartTooltip(id: string, xFrac: number): string | null {

@@ -248,6 +248,53 @@
         </details>
       </section>
     </main>
+    <section class="view3d" aria-label="3D reference playback">
+      <h2>3D reference — recorded playback</h2>
+      <p class="hint">
+        The same 400 mL pour, computed offline by the 3D solver (cylindrical 1.5 L teapot with a real round
+        spout). This is a recording, not a live simulation. Drag to rotate, scroll or pinch to zoom,
+        right-drag or two-finger drag to pan — also while it pours.
+      </p>
+      <button id="open3d" type="button" class="primary">Open 3D view</button>
+      <p id="v3status" class="status" role="status" aria-live="polite"></p>
+      <div id="view3dBox" hidden>
+        <div class="toolbar" role="toolbar" aria-label="3D playback">
+          <button id="v3play" type="button" aria-pressed="true">Pause</button>
+          <button id="v3restart" type="button">Restart</button>
+          <label
+            >Speed
+            <select id="v3speed">
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+          <button id="v3reset" type="button">Reset view</button>
+          <input
+            id="v3scrub"
+            type="range"
+            min="0"
+            max="0"
+            step="0.01"
+            value="0"
+            aria-label="3D playback position"
+          />
+        </div>
+        <div class="view3d-stage">
+          <canvas
+            id="view3dCanvas"
+            width="960"
+            height="560"
+            aria-label="Rotatable 3D view of the recorded pour"
+          ></canvas>
+          <div class="v3overlay">
+            <p id="v3info"></p>
+            <div class="v3bar" id="v3bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
     <footer class="foot">
       <p>PourLab is free software under the GNU GPL v3 or later. 2D qualitative model: see Model limits.</p>
     </footer>

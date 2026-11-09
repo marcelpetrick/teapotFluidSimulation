@@ -55,6 +55,7 @@ C4Component
     Component(charts, "Charts", "src/render/charts.ts", "Bins, bias, time series")
     Component(help, "Tooltips", "src/ui/help.ts", "What every control is and what it influences")
     Component(sound, "Soundscape", "src/audio/soundscape.ts", "Drones, space wind, shimmer, pour noise")
+    Component(view3d, "3D playback viewer", "src/view3d/ (three.js, lazy chunk)", "Recorded 3D pour with orbit, zoom and pan")
   }
   Container_Boundary(wk, "Worker") {
     Component(host, "SimulationHost", "src/worker/host.ts", "Command handling, time-budgeted pumping, metrics snapshots")
@@ -69,6 +70,7 @@ C4Component
   Rel(app, editor, "hosts")
   Rel(app, help, "applies")
   Rel(app, sound, "drives")
+  Rel(app, view3d, "opens on demand; fetches data/pour3d.bin.gz")
   Rel(app, scene, "draws with")
   Rel(app, charts, "draws with")
   Rel(app, config, "validates settings")
@@ -97,6 +99,8 @@ flowchart LR
   B4[benchmarks/run3d.ts: 3D reference pour] --> S3
   R1[scripts/render-gif.ts: GIFs from the built app] --> APP[Production build]
   R2[scripts/render3d.ts: 3D playback GIF] --> S3
+  R3[scripts/record3d.ts: recording for the browser 3D view] --> S3
+  R3 --> D[(public/data/pour3d.bin.gz)]
   B1 --> J[(benchmarks/*.json)]
   B2 --> J
   B4 --> J

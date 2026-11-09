@@ -13,6 +13,13 @@ export const CONTROL_HELP: Record<string, string> = {
   soundToggle:
     'Turn the generated soundscape on or off: a calm space ambience, plus a pouring sound whose loudness follows how much tea is flowing.',
   volume: 'Overall sound volume.',
+  open3d:
+    'Load the recorded 3D reference pour (about 2 MB, loaded only now) and view it in 3D: drag to rotate, scroll to zoom, right-drag to pan.',
+  v3play: 'Play or pause the 3D recording. You can rotate and zoom the view at any time.',
+  v3restart: 'Play the 3D recording from the start.',
+  v3speed: 'Playback speed of the 3D recording.',
+  v3reset: 'Return the camera to the starting view.',
+  v3scrub: 'Jump to any moment of the 3D recording.',
   pour: 'Start the experiment: the pot tilts, liquid leaves through the spout or lip, then the pot returns upright near the target volume.',
   play: 'Play or pause the simulation (keyboard: Space). Pausing keeps the state; nothing is lost.',
   step: 'Advance exactly 1/60 s of simulated time, then pause. Useful to inspect the flow frame by frame.',

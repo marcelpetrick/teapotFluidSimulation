@@ -35,20 +35,22 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 
 ## Layout
 
-| Path          | Purpose                                                               |
-| ------------- | --------------------------------------------------------------------- |
-| `src/sim/`    | Browser-independent solver, geometry, motion, metrics, config, export |
-| `src/worker/` | Worker host (testable, time-budgeted pumping) and worker entry        |
-| `src/render/` | Canvas scene and charts                                               |
-| `src/ui/`     | App, shape editor, tooltip texts                                      |
-| `src/audio/`  | Generated soundscape and pour sound                                   |
-| `src/sim3d/`  | Offline 3D reference solver (Node only, not part of the web app)      |
-| `tests/`      | Vitest unit and integration tests (happy-dom for UI)                  |
-| `e2e/`        | Playwright tests against the built site under the Pages sub-path      |
-| `scripts/`    | Helper scripts, documented in `scripts/README.md`                     |
-| `benchmarks/` | Benchmark, profile and performance runners plus committed results     |
-| `docs/`       | Physics, validation, architecture, sources                            |
-| `media/`      | Showcase GIFs, named with the version they were rendered from         |
+| Path           | Purpose                                                               |
+| -------------- | --------------------------------------------------------------------- |
+| `src/sim/`     | Browser-independent solver, geometry, motion, metrics, config, export |
+| `src/worker/`  | Worker host (testable, time-budgeted pumping) and worker entry        |
+| `src/render/`  | Canvas scene and charts                                               |
+| `src/ui/`      | App, shape editor, tooltip texts                                      |
+| `src/audio/`   | Generated soundscape and pour sound                                   |
+| `src/sim3d/`   | Offline 3D reference solver (Node only, not part of the web app)      |
+| `src/view3d/`  | Recorded-3D playback viewer (three.js, lazily loaded) and its format  |
+| `public/data/` | Recorded 3D pour served with the site (`scripts/record3d.ts`)         |
+| `tests/`       | Vitest unit and integration tests (happy-dom for UI)                  |
+| `e2e/`         | Playwright tests against the built site under the Pages sub-path      |
+| `scripts/`     | Helper scripts, documented in `scripts/README.md`                     |
+| `benchmarks/`  | Benchmark, profile and performance runners plus committed results     |
+| `docs/`        | Physics, validation, architecture, sources                            |
+| `media/`       | Showcase GIFs, named with the version they were rendered from         |
 
 ## Commands
 

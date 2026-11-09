@@ -92,6 +92,33 @@ test('cyber look is remembered across reloads and the soundscape switches on', a
   await expect(page.locator('#soundToggle')).toHaveText('Sound: off');
 });
 
+test('the recorded 3D view opens, plays and can be rotated', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./');
+  await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });
+  await page.locator('#open3d').click();
+  await expect(page.locator('#v3status')).toHaveText(/Recorded 3D simulation|3D view unavailable/, {
+    timeout: 60_000,
+  });
+  const status = (await page.locator('#v3status').textContent()) ?? '';
+  if (status.startsWith('Recorded')) {
+    await expect(page.locator('#view3dCanvas')).toBeVisible();
+    const t0 = await page.locator('#v3info').textContent();
+    await expect(page.locator('#v3info')).not.toHaveText(t0 ?? '', { timeout: 10_000 }); // playback advances
+    const box = (await page.locator('#view3dCanvas').boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 - 100, box.y + box.height / 2 + 30, { steps: 5 });
+    await page.mouse.up();
+    await page.locator('#v3scrub').fill('60');
+    await expect(page.locator('#v3info')).toContainText('poured');
+  } else {
+    await expect(page.locator('#view3dBox')).toBeHidden();
+  }
+  expect(errors).toEqual([]);
+});
+
 test('step, scrub, exports and view toggles work', async ({ page }) => {
   await page.goto('./?preset=tank-tilt&duration=2');
   await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });

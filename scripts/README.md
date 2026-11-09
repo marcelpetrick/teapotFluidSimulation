@@ -30,6 +30,8 @@ More helpers:
   `npx tsx benchmarks/cavity.ts 48 1000 10000 100000`.
 - `../benchmarks/mg.ts` — MIC(0) vs multigrid pressure preconditioner: `npx tsx benchmarks/mg.ts 96 1`.
 - `../benchmarks/run3d.ts` — offline 3D reference pour: `npx tsx benchmarks/run3d.ts 5 25` (about 12 min).
+- `record3d.ts` — records the 3D pour for the interactive browser 3D view (`public/data/pour3d.bin.gz`,
+  quantised frame deltas, gzip): `npx tsx scripts/record3d.ts 5 3` (about 12 min).
 - `render3d.ts` — labelled 3D playback GIF of that run:
   `npx tsx scripts/render3d.ts media/pourlab-vX.Y.Z-3d-teapot.gif 5 14 cyber`.
 

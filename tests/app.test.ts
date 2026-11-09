@@ -44,6 +44,29 @@ function setup(
   stored: [string, string][] = [],
 ) {
   const audio = fakeAudio();
+  const viewer3d = {
+    frames: 50,
+    frame: 0,
+    time: 0,
+    playing: true,
+    speed: 1,
+    onFrame: null as ((f: number) => void) | null,
+    seek(f: number) {
+      this.frame = f;
+      this.onFrame?.(f);
+    },
+    resetView() {
+      this.reset = true;
+    },
+    reset: false,
+    resize() {},
+    poured: () => [100, 200, 100],
+    angleDeg: () => 25,
+    applyTheme() {
+      viewer3d.themed++;
+    },
+    themed: 0,
+  };
   const prefs = new Map<string, string>(stored);
   document.body.innerHTML = body;
   const worker = new FakeWorker();
@@ -69,6 +92,10 @@ function setup(
     reducedMotion: true,
     version: '1.2.3',
     audio: () => (audioOk ? (audio as unknown as AudioCtxLike) : null),
+    open3d: async () => {
+      if (search.includes('no3d')) throw new Error('WebGL is not available in this browser');
+      return viewer3d;
+    },
     prefs: { get: (k) => prefs.get(k) ?? null, set: (k, v) => void prefs.set(k, v) },
   };
   const app = new App(deps);
@@ -79,7 +106,18 @@ function setup(
     void ms;
     await worker.queue;
   };
-  return { app, worker, tick, downloads, replaced, copied, audio, prefs, settle: () => worker.queue };
+  return {
+    app,
+    worker,
+    tick,
+    downloads,
+    replaced,
+    copied,
+    audio,
+    prefs,
+    viewer3d,
+    settle: () => worker.queue,
+  };
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -365,6 +403,45 @@ describe('App (integration with the real simulation host)', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect($('status').textContent).toMatch(/not supported/);
     expect($('soundToggle').textContent).toBe('Sound: off');
+  });
+
+  it('opens the recorded 3D view and wires its playback controls', async () => {
+    const t = setup('?preset=tank-rest');
+    await t.settle();
+    await t.app.open3D();
+    expect($('view3dBox').hidden).toBe(false);
+    expect($('open3d').hidden).toBe(true);
+    expect($('v3status').textContent).toMatch(/Recorded 3D simulation/);
+    expect($('v3info').textContent).toMatch(/poured 400 mL: 25 % bottom, 50 % middle, 25 % top/);
+    expect(($('v3scrub') as HTMLInputElement).max).toBe('49');
+    $('v3play').click();
+    expect(t.viewer3d.playing).toBe(false);
+    expect($('v3play').textContent).toBe('Play');
+    $('v3restart').click();
+    expect(t.viewer3d.playing).toBe(true);
+    const speed = $('v3speed') as HTMLSelectElement;
+    speed.value = '2';
+    speed.dispatchEvent(new Event('change'));
+    expect(t.viewer3d.speed).toBe(2);
+    $('v3reset').click();
+    expect(t.viewer3d.reset).toBe(true);
+    const scrub = $('v3scrub') as HTMLInputElement;
+    scrub.value = '20';
+    scrub.dispatchEvent(new Event('input'));
+    expect(t.viewer3d.frame).toBe(20);
+    $('mode-dark').click();
+    expect(t.viewer3d.themed).toBeGreaterThan(0);
+    expect(t.app.theme3d().layers).toHaveLength(3);
+  });
+
+  it('explains when the 3D view cannot open', async () => {
+    const t = setup('?preset=tank-rest&no3d=1');
+    await t.settle();
+    $('v3play').click(); // no viewer yet: ignored
+    $('open3d').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect($('v3status').textContent).toMatch(/3D view unavailable: WebGL is not available/);
+    expect($('view3dBox').hidden).toBe(true);
   });
 
   it('copy failure falls back to showing the link', async () => {
