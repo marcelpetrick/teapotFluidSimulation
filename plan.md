@@ -55,6 +55,8 @@ status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 - [x] `/githubAbout` applied; public releases v0.5.5 and v0.6.2
 - [x] End-to-end runs of the nine most common configurations in Chromium and Firefox, checked physically
 
+- [x] Faster solver evaluated: multigrid PCG implemented and measured, not faster than MIC(0) at these sizes (kept optional) — `benchmarks/mg.ts`
+
 ### Product extras (owner requests)
 
 - [x] Pot shape editor, manual tilt, particles per cell, finer resolution, tooltips on every control

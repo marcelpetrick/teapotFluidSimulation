@@ -158,8 +158,13 @@ keep results bit-for-bit identical (verified on the reference pour): a tabulated
 with an exact near-wall fallback, allocation-free inner loops, and inlined viscosity masks — together
 about 1.4× since the first release. Warm-starting the pressure solves was tried and **rejected**: only
 2–6 % faster because the free surface changes the system every substep, while giving up bit-identical
-results. The next real step would be a multigrid pressure solver or a WebAssembly/WebGPU backend
-(vision §18.5), both deliberately deferred until profiling justifies them.
+results. A multigrid-preconditioned CG (MGPCG, `src/sim/multigrid.ts`, `benchmarks/mg.ts`) was implemented
+and measured on the gentle pour: it cuts the pressure iterations (31 → 20 at 44 cells, 55 → 22 at 96,
+68 → 31 at 128) but each V-cycle costs more than a MIC(0) application, so a step is slower (3.9 vs 5.5
+ms at 44, 24.9 vs 27.3 ms at 96, 48.1 vs 50.6 ms at 128 cells). The liquid occupies only a small,
+irregular part of the grid, where MIC(0) is already a strong, cheap preconditioner. MIC(0) therefore
+stays the default; multigrid is available as `pressurePreconditioner: 'multigrid'`. A WebAssembly or
+WebGPU backend is the remaining lever and is not yet justified by the profile.
 
 ## Not done (needs the owner or a later version)
 

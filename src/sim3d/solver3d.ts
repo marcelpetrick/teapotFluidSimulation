@@ -687,8 +687,19 @@ export class Simulation3D {
     const hiX = (this.nx - 1) * this.h;
     const hiY = (this.ny - 1) * this.h;
     const hiZ = (this.nz - 1) * this.h;
+    const g = this.cfg.gravity;
     for (let p = 0; p < this.n; p++) {
       const st = this.status[p];
+      if (st === DISCHARGED || st === SPILLED) {
+        // Visual-only ballistic continuation of removed parcels (not part of the liquid solve).
+        if (this.y[p] > -1) {
+          this.vy[p] -= g * dt;
+          this.x[p] += this.vx[p] * dt;
+          this.y[p] += this.vy[p] * dt;
+          this.z[p] += this.vz[p] * dt;
+        }
+        continue;
+      }
       if (st !== IN_POT) continue;
       const x0 = this.x[p];
       const y0 = this.y[p];

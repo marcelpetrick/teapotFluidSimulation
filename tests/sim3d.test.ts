@@ -116,6 +116,8 @@ describe('3D simulation', () => {
     expect(d.inPotMl + d.dischargedMl + d.spilledMl + d.lostMl).toBeCloseTo(1500, 6);
     expect(a.dischargedFractions()!.reduce((x, y) => x + y, 0)).toBeCloseTo(1);
     for (const p of a.dischargeOrder) expect(a.status[p]).toBe(DISCHARGED);
+    // Poured parcels keep falling (visual only), below the lip.
+    expect(Math.min(...a.dischargeOrder.map((p) => a.y[p]))).toBeLessThan(a.pivotWorld[1]);
     expect(Array.from(b.x)).toEqual(Array.from(a.x));
     expect(a.status.includes(IN_POT)).toBe(true);
   });

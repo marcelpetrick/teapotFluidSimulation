@@ -7,6 +7,7 @@
 // Unknown per fluid cell: q = p * dt / (rho * h). With D = net face flux * (1/1) in m/s,
 // projection makes  sum_nonSolidNeighbours (q_c - q_n) = -D_c,  air neighbours have q = 0.
 
+import { Multigrid2D } from './multigrid';
 import { CELL_AIR, CELL_FLUID, CELL_SOLID } from './types';
 
 export interface PressureResult {
@@ -34,6 +35,10 @@ export class PressureSolver {
   private queue: Int32Array;
   fluidList: Int32Array;
   fluidCount = 0;
+  /** Preconditioner: incomplete Cholesky (default) or a multigrid V-cycle (MGPCG). */
+  preconditioner: 'mic0' | 'multigrid' = 'mic0';
+  private mg: Multigrid2D | null = null;
+  private useMg = false;
 
   constructor(nx: number, ny: number) {
     this.nx = nx;
@@ -85,7 +90,12 @@ export class PressureSolver {
     }
 
     const enclosed = this.fixEnclosedGauges(cell, b);
-    this.buildPreconditioner(cell);
+    // Multigrid does not model the pinned gauge of enclosed liquid: fall back to MIC(0) there.
+    this.useMg = this.preconditioner === 'multigrid' && enclosed === 0;
+    if (this.useMg) {
+      this.mg ??= new Multigrid2D(this.nx, this.ny);
+      this.mg.setup(cell);
+    } else this.buildPreconditioner(cell);
 
     const r = this.r;
     let bnorm = 0;
@@ -192,6 +202,10 @@ export class PressureSolver {
   }
 
   private applyPreconditioner(r: Float64Array, z: Float64Array): void {
+    if (this.useMg) {
+      this.mg!.apply(r, z);
+      return;
+    }
     const { nx, aplusi, aplusj, precon, fluidList: fl } = this;
     const m = this.fluidCount;
     const qv = this.as; // scratch reused before applyA overwrites it

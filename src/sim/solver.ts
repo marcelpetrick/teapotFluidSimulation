@@ -213,6 +213,7 @@ export class Simulation {
     this.cellTw = new Float64Array(nc);
     this.cellDT = new Float64Array(nc);
     this.pressureSolver = new PressureSolver(nx, ny);
+    this.pressureSolver.preconditioner = cfg.pressurePreconditioner ?? 'mic0';
     this.pose = makePose(0, 0, cfg.pivotLocal, cfg.pivotWorld);
 
     // Seed parcels on a jittered lattice aligned with the grid.

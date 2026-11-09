@@ -143,6 +143,8 @@ export interface ExperimentConfig {
   cfl: number;
   maxSubstep: number;
   pressureTolerance: number;
+  /** Pressure preconditioner (default MIC(0)); 'multigrid' uses an MGPCG V-cycle. */
+  pressurePreconditioner?: 'mic0' | 'multigrid';
   pressureMaxIterations: number;
   originBands: number;
   seed: number;
