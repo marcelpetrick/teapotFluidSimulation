@@ -74,7 +74,7 @@ describe('ShapeEditor (DOM)', () => {
     document.body.innerHTML = `
       <button id="shape-glass"></button><button id="shape-pitcher"></button>
       <button id="shape-bowl"></button><button id="shape-jug"></button>
-      <button id="shapeNext"></button><button id="shapeAdd"></button><p id="shapePoint"></p><button id="shapeRemove"></button><canvas id="shapeCanvas" width="460" height="350"></canvas>
+      <button id="shapeNext"></button><button id="shapeAdd"></button><p id="shapePoint"></p><button id="shapeRemove"></button><canvas id="shapeCanvas" tabindex="0" width="460" height="350"></canvas>
       <p id="shapeErrors"></p><button id="shapeUse"></button>`;
     const used: Pt[][] = [];
     const ed = new ShapeEditor(
@@ -125,6 +125,7 @@ describe('ShapeEditor (DOM)', () => {
     const { ed, c } = setup();
     c.getBoundingClientRect = () => ({ left: 0, top: 0, width: 230, height: 175 }) as DOMRect;
     document.getElementById('shapeNext')!.click();
+    expect(document.activeElement).toBe(c);
     expect(ed.selected).toBe(0);
     const before = ed.pts[0][1];
     c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true }));

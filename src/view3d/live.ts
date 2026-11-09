@@ -293,6 +293,7 @@ export class LivePourViewer {
     try {
       while (sim === this.sim && !this.disposed && this.playing && sim.time < this.goal && !this.finished) {
         await sim.step();
+        if (sim !== this.sim || this.disposed) return;
         if (sim.controller.phase === 'done' && this.doneAt < 0 && !this.manual) this.doneAt = sim.time;
       }
     } catch (e) {

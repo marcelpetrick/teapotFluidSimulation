@@ -310,6 +310,7 @@ export class ShapeEditor {
     this.doc.getElementById('shapeNext')?.addEventListener('click', () => {
       this.selected = (this.selected + 1) % this.pts.length;
       this.render();
+      c.focus();
     });
     this.doc.getElementById('shapeAdd')?.addEventListener('click', () => {
       const i = this.selected < 0 ? 0 : Math.min(this.selected, this.pts.length - 2);
@@ -318,6 +319,7 @@ export class ShapeEditor {
       this.pts.splice(i + 1, 0, clampPoint((a[0] + b[0]) / 2, (a[1] + b[1]) / 2));
       this.selected = i + 1;
       this.render();
+      c.focus();
     });
     this.el('shapeRemove').addEventListener('click', () => this.removeSelected());
     this.el('shapeUse').addEventListener('click', () => {

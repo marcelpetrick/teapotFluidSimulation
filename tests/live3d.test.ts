@@ -265,3 +265,21 @@ describe('live viewer failure handling', () => {
     v.dispose();
   });
 });
+
+it('ignores a completed substep from the run that was replaced during its await', async () => {
+  const { v, sims, flush } = setup();
+  let complete!: () => void;
+  sims[0].step = () =>
+    new Promise<void>((resolve) => {
+      sims[0].time = 0.02;
+      sims[0].controller.phase = 'done';
+      complete = resolve;
+    });
+  v.tick(100);
+  v.restart();
+  complete();
+  await flush();
+  sims[1].time = 2;
+  expect(v.finished).toBe(false);
+  v.dispose();
+});
