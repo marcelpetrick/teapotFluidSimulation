@@ -58,6 +58,9 @@ export interface SdfCache {
   /** Lower bound of the distance for any point outside the table (walls are >= pad inside it). */
   outside: number;
   values: Float32Array;
+  /** Exact nearest-segment candidates for each table cell, in original segment order. */
+  candidateOffsets: Uint32Array;
+  candidateIndices: Uint32Array;
 }
 
 function buildCache(v: Vessel, step: number): SdfCache {
@@ -82,8 +85,45 @@ function buildCache(v: Vessel, step: number): SdfCache {
   const values = new Float32Array(nx * ny);
   for (let j = 0; j < ny; j++)
     for (let i = 0; i < nx; i++) values[i + j * nx] = exactSdf(v, x0 + i * step, y0 + j * step);
-  // Bilinear interpolation of a 1-Lipschitz function errs by at most ~step; 3 steps is safe.
-  return { x0, y0, step, nx, ny, exact: 3 * step, outside: pad - v.halfWall, values };
+  const candidateOffsets = new Uint32Array((nx - 1) * (ny - 1) + 1);
+  const indices: number[] = [];
+  // At a cell centre, distance differences can change by at most twice the cell radius.
+  // Keep every segment that can be nearest anywhere in that cell. Preserve tie-breaking order.
+  for (let j = 0; j < ny - 1; j++)
+    for (let i = 0; i < nx - 1; i++) {
+      const k = i + j * nx;
+      const cell = i + j * (nx - 1);
+      candidateOffsets[cell] = indices.length;
+      // Far-field queries use interpolation; an explicit exact query there can scan all segments.
+      if (Math.min(values[k], values[k + 1], values[k + nx], values[k + nx + 1]) > 5 * step) continue;
+      const x = x0 + (i + 0.5) * step;
+      const y = y0 + (j + 0.5) * step;
+      const limit = exactSdf(v, x, y) + v.halfWall + Math.SQRT2 * step + 1e-12;
+      for (let n = 0; n < v.segments.length; n++) {
+        const s = v.segments[n];
+        const ex = s.bx - s.ax;
+        const ey = s.by - s.ay;
+        const wx = x - s.ax;
+        const wy = y - s.ay;
+        const t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey)));
+        if (Math.hypot(wx - t * ex, wy - t * ey) <= limit) indices.push(n);
+      }
+    }
+  candidateOffsets[candidateOffsets.length - 1] = indices.length;
+  // Packed indices avoid thousands of per-cell arrays and reduce mobile initialization pressure.
+  const candidateIndices = Uint32Array.from(indices);
+  return {
+    x0,
+    y0,
+    step,
+    nx,
+    ny,
+    exact: 3 * step,
+    outside: pad - v.halfWall,
+    values,
+    candidateOffsets,
+    candidateIndices,
+  };
 }
 
 function arc(cx: number, cy: number, r: number, a0: number, a1: number, n: number): [number, number][] {
@@ -307,12 +347,29 @@ export function vesselSdf(v: Vessel, x: number, y: number): number {
   return exactSdf(v, x, y);
 }
 
-/** Exact signed distance (no table). */
+/** Candidate table cell, or -1 when an exact query needs the complete segment set. */
+function nearestCandidateCell(v: Vessel, x: number, y: number): number {
+  const c = v.cache;
+  if (c) {
+    const i = Math.floor((x - c.x0) / c.step);
+    const j = Math.floor((y - c.y0) / c.step);
+    if (i >= 0 && j >= 0 && i < c.nx - 1 && j < c.ny - 1) {
+      const cell = i + j * (c.nx - 1);
+      if (c.candidateOffsets[cell] < c.candidateOffsets[cell + 1]) return cell;
+    }
+  }
+  return -1;
+}
+
+/** Exact signed distance; candidate pruning never interpolates the distance. */
 export function exactSdf(v: Vessel, x: number, y: number): number {
   let best = Infinity;
   const segs = v.segments;
-  for (let k = 0; k < segs.length; k++) {
-    const s = segs[k];
+  const cell = nearestCandidateCell(v, x, y);
+  const start = cell < 0 ? 0 : v.cache!.candidateOffsets[cell];
+  const end = cell < 0 ? segs.length : v.cache!.candidateOffsets[cell + 1];
+  for (let k = start; k < end; k++) {
+    const s = segs[cell < 0 ? k : v.cache!.candidateIndices[k]];
     const ex = s.bx - s.ax;
     const ey = s.by - s.ay;
     const wx = x - s.ax;
@@ -333,8 +390,11 @@ export function vesselSdfGrad(v: Vessel, x: number, y: number, out: Float64Array
   let gx = 0;
   let gy = 1;
   const segs = v.segments;
-  for (let k = 0; k < segs.length; k++) {
-    const s = segs[k];
+  const cell = nearestCandidateCell(v, x, y);
+  const start = cell < 0 ? 0 : v.cache!.candidateOffsets[cell];
+  const end = cell < 0 ? segs.length : v.cache!.candidateOffsets[cell + 1];
+  for (let k = start; k < end; k++) {
+    const s = segs[cell < 0 ? k : v.cache!.candidateIndices[k]];
     const ex = s.bx - s.ax;
     const ey = s.by - s.ay;
     const wx = x - s.ax;

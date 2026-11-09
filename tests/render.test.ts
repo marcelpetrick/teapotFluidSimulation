@@ -91,7 +91,7 @@ describe('scene drawing', () => {
     );
     // Halo pass (additive) plus a true-colour pass: two fills per visible parcel.
     expect(gc0.globalCompositeOperation).toBe('lighter');
-    expect(gc0.calls.filter((c) => c === 'fillRect').length).toBeGreaterThan(1.5 * info.n);
+    expect(gc0.calls.filter((c) => c === 'fillRect' || c === 'rect').length).toBeGreaterThan(1.5 * info.n);
     const hc = fakeCtx();
     const styles: string[] = [];
     Object.defineProperty(hc, 'fillStyle', { set: (v: string) => styles.push(v), get: () => '' });

@@ -319,3 +319,63 @@ describe('solver: thermal extension', () => {
     expect(Math.abs(d.thermalInventoryError)).toBeLessThan(0.02);
   });
 });
+
+describe('APIC transfer verification', () => {
+  it('preserves constant, general affine and rotational velocity fields in supported interior stencils', () => {
+    for (const [ux, uy, u0, vx, vy, v0] of [
+      [0, 0, 0.2, 0, 0, -0.1],
+      [0.3, -0.4, 0.1, 0.2, 0.5, -0.2],
+      [0, -2, 0, 2, 0, 0],
+    ]) {
+      const sim = new Simulation(
+        cfgFor('tank-rest', (c) => {
+          c.transfer = 'apic';
+        }),
+      );
+      const transfer = sim as unknown as {
+        cux: Float64Array;
+        cuy: Float64Array;
+        cvx: Float64Array;
+        cvy: Float64Array;
+        uValid: Uint8Array;
+        vValid: Uint8Array;
+        uw: Float64Array;
+        vw: Float64Array;
+        particlesToGrid(): void;
+        gridToParticles(): void;
+      };
+      for (let p = 0; p < sim.n; p++) {
+        sim.vx[p] = ux * sim.x[p] + uy * sim.y[p] + u0;
+        sim.vy[p] = vx * sim.x[p] + vy * sim.y[p] + v0;
+      }
+      transfer.cux.fill(ux);
+      transfer.cuy.fill(uy);
+      transfer.cvx.fill(vx);
+      transfer.cvy.fill(vy);
+      transfer.particlesToGrid();
+      for (let f = 0; f < transfer.uw.length; f++) transfer.uValid[f] = Number(transfer.uw[f] > 1e-9);
+      for (let f = 0; f < transfer.vw.length; f++) transfer.vValid[f] = Number(transfer.vw[f] > 1e-9);
+      transfer.gridToParticles();
+      let checked = 0;
+      const local = new Float64Array(2);
+      for (let p = 0; p < sim.n; p++) {
+        worldToLocal(sim.pose, sim.x[p], sim.y[p], local);
+        if (
+          local[0] < 3 * sim.h ||
+          local[0] > sim.cfg.vessel.innerWidth - 3 * sim.h ||
+          local[1] < 3 * sim.h ||
+          local[1] > sim.cfg.fillHeight - 3 * sim.h
+        )
+          continue;
+        checked++;
+        expect(sim.vx[p]).toBeCloseTo(ux * sim.x[p] + uy * sim.y[p] + u0, 12);
+        expect(sim.vy[p]).toBeCloseTo(vx * sim.x[p] + vy * sim.y[p] + v0, 12);
+        expect(transfer.cux[p]).toBeCloseTo(ux, 11);
+        expect(transfer.cuy[p]).toBeCloseTo(uy, 11);
+        expect(transfer.cvx[p]).toBeCloseTo(vx, 11);
+        expect(transfer.cvy[p]).toBeCloseTo(vy, 11);
+      }
+      expect(checked).toBeGreaterThan(100);
+    }
+  });
+});

@@ -26,6 +26,7 @@ export function fakeCtx() {
     stroke: rec('stroke'),
     fill: rec('fill'),
     fillRect: rec('fillRect'),
+    rect: rec('rect'),
     strokeRect: rec('strokeRect'),
     arc: rec('arc'),
     fillText: rec('fillText'),

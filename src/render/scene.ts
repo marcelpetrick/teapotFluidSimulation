@@ -18,6 +18,7 @@ export type Ctx2D = Pick<
   | 'stroke'
   | 'fill'
   | 'fillRect'
+  | 'rect'
   | 'strokeRect'
   | 'arc'
   | 'fillText'
@@ -205,6 +206,14 @@ export function drawParcels(
     }
     const rr = halo ? r * 2.6 : r;
     let lastColour = '';
+    // Only opaque rectangles may share a path: overlapping translucent parcels and additive
+    // halos must keep their individual compositing. Consecutive colours preserve painter order.
+    const batch =
+      !halo &&
+      !opts.markers &&
+      opts.mode === 'origin' &&
+      [...theme.origins, theme.dim].every((c) => /^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i.test(c));
+    if (batch) ctx.beginPath();
     for (let p = 0; p < snap.count; p++) {
       const st = snap.status[p];
       const y = pos[2 * p + 1];
@@ -213,14 +222,20 @@ export function drawParcels(
       const k = info.origin[p];
       const colour = colourOf(p, st, k);
       if (colour !== lastColour) {
+        if (batch && lastColour) {
+          ctx.fill();
+          ctx.beginPath();
+        }
         ctx.fillStyle = colour;
         lastColour = colour;
       }
       const sx = v.ox + pos[2 * p] * v.scale;
       const sy = v.oy - y * v.scale;
       if (!halo && opts.markers && opts.mode === 'origin') drawMarker(ctx, k, sx, sy, rr);
+      else if (batch) ctx.rect(sx - rr, sy - rr, 2 * rr, 2 * rr);
       else ctx.fillRect(sx - rr, sy - rr, 2 * rr, 2 * rr);
     }
+    if (batch && lastColour) ctx.fill();
     ctx.restore();
   }
 }

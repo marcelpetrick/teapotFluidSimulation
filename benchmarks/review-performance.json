@@ -1,0 +1,160 @@
+{
+  "scope": "Original commit 839ccf2 versus review working tree; measurements before validation suites. Render calls are paused synchronous CPU submission costs, not end-to-end frame times. After measurements use an uncommitted working tree based on the recorded commit, containing the performance changes in this release. The memory baseline is one separate process; timings from it are not used.",
+  "renderBefore": [
+    {
+      "name": "desktop-default",
+      "width": 1440,
+      "quality": 44,
+      "ppc": 2,
+      "throttle": 1,
+      "parcels": 5259,
+      "renderMedianMs": 2.7999999998137355,
+      "renderMaxMs": 18.09999999962747,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "desktop-max",
+      "width": 1440,
+      "quality": 128,
+      "ppc": 4,
+      "throttle": 1,
+      "parcels": 180035,
+      "renderMedianMs": 147.3999999994412,
+      "renderMaxMs": 154.1000000005588,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "phone-default-4x-cpu",
+      "width": 390,
+      "quality": 44,
+      "ppc": 2,
+      "throttle": 4,
+      "parcels": 5259,
+      "renderMedianMs": 10.600000000558794,
+      "renderMaxMs": 76.8999999994412,
+      "scrollWidth": 390
+    }
+  ],
+  "renderAfter": [
+    {
+      "name": "desktop-default",
+      "width": 1440,
+      "quality": 44,
+      "ppc": 2,
+      "throttle": 1,
+      "parcels": 5259,
+      "renderMedianMs": 0.6000000005587935,
+      "renderMaxMs": 1,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "desktop-max",
+      "width": 1440,
+      "quality": 128,
+      "ppc": 4,
+      "throttle": 1,
+      "parcels": 180035,
+      "renderMedianMs": 11.200000000186265,
+      "renderMaxMs": 14.300000000745058,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "phone-default-4x-cpu",
+      "width": 390,
+      "quality": 44,
+      "ppc": 2,
+      "throttle": 4,
+      "parcels": 5259,
+      "renderMedianMs": 2,
+      "renderMaxMs": 3.7999999998137355,
+      "scrollWidth": 390
+    }
+  ],
+  "solverBefore": {
+    "generatedAt": "2026-11-09T22:47:28.633Z",
+    "commit": "839ccf2c0213feeb1f031392657dd76a05270e66",
+    "node": "v24.20.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "preset": "teapot-gentle",
+    "seconds": 14,
+    "runs": [
+      {
+        "initMs": 15.929771999999957,
+        "solverMs": 9205.552217999999,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      },
+      {
+        "initMs": 7.963101000001188,
+        "solverMs": 9029.660464,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      },
+      {
+        "initMs": 4.98421800000142,
+        "solverMs": 9063.991562,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      }
+    ]
+  },
+  "solverAfter": {
+    "generatedAt": "2026-11-09T22:54:33.044Z",
+    "commit": "47c2af42d14eb97b4f8e52c89ba3d726809f27d1",
+    "node": "v24.20.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "preset": "teapot-gentle",
+    "seconds": 14,
+    "runs": [
+      {
+        "residentMiB": 110.30078125,
+        "peakResidentMiB": 110.30078125,
+        "initMs": 16.46107100000006,
+        "solverMs": 9071.130796,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      },
+      {
+        "residentMiB": 112.734375,
+        "peakResidentMiB": 112.734375,
+        "initMs": 10.96402500000113,
+        "solverMs": 8874.936977,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      },
+      {
+        "residentMiB": 115.98046875,
+        "peakResidentMiB": 115.98046875,
+        "initMs": 7.934852999998839,
+        "solverMs": 8575.570031000003,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      }
+    ]
+  },
+  "memoryBaseline": {
+    "generatedAt": "2026-11-09T22:52:30.682Z",
+    "commit": "839ccf2c0213feeb1f031392657dd76a05270e66",
+    "node": "v24.20.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "preset": "teapot-gentle",
+    "seconds": 14,
+    "runs": [
+      {
+        "residentMiB": 103.07421875,
+        "peakResidentMiB": 104.93359375,
+        "initMs": 15.212991999999986,
+        "solverMs": 9495.806247999999,
+        "stateSha256": "3f3a9d3ab48c192a165f52a7f41adc9c1d79f4b009cac82fb8a3aac1402dadc9",
+        "steps": 3157,
+        "parcels": 5259
+      }
+    ]
+  }
+}

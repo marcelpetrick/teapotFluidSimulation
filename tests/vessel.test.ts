@@ -163,3 +163,23 @@ describe('rng', () => {
     }
   });
 });
+
+describe('exact wall candidate acceleration', () => {
+  it('matches a complete segment scan for distances and gradients across every vessel', () => {
+    const rng = createRng(991);
+    for (const kind of ['teapot', 'glass', 'pitcher', 'tank', 'custom', 'cavity'] as const) {
+      const v = buildVessel(defaultVessel(kind));
+      const reference = { ...v, cache: null };
+      const a = new Float64Array(2);
+      const b = new Float64Array(2);
+      const c = v.cache!;
+      for (let i = 0; i < 2000; i++) {
+        const x = c.x0 - 0.01 + rng() * (c.nx * c.step + 0.02);
+        const y = c.y0 - 0.01 + rng() * (c.ny * c.step + 0.02);
+        expect(exactSdf(v, x, y)).toBe(exactSdf(reference, x, y));
+        expect(vesselSdfGrad(v, x, y, a)).toBe(vesselSdfGrad(reference, x, y, b));
+        expect(a).toEqual(b);
+      }
+    }
+  });
+});
