@@ -135,7 +135,7 @@ a {
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'stage' 'results' 'settings';
+    grid-template-areas: 'stage' 'settings' 'results';
   }
 }
 
@@ -539,4 +539,71 @@ td:first-child {
 }
 #v3scrub {
   flex: 1 1 200px;
+}
+
+/* Controls remain usable with touch and at narrow viewport widths. */
+button,
+select,
+input[type='number'],
+summary {
+  min-height: 44px;
+}
+input[type='range'] {
+  min-height: 36px;
+  max-width: 100%;
+}
+.settings select,
+.fields input {
+  min-width: 0;
+  max-width: 100%;
+}
+#tables,
+#comparison {
+  overflow-x: auto;
+}
+.section-label {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+.shape-tools {
+  margin: 8px 0;
+}
+@media (max-width: 600px) {
+  .top,
+  .layout,
+  .view3d {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .top-controls {
+    gap: 8px;
+  }
+  .settings {
+    padding: 12px;
+  }
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .settings > form > label select {
+    width: 100%;
+  }
+  .toolbar .status {
+    flex-basis: 100%;
+  }
+  .diag {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .diag dd {
+    overflow-wrap: anywhere;
+  }
+  .section-label {
+    font-size: 0.65rem;
+  }
+  .v3overlay {
+    max-width: calc(100% - 24px);
+  }
 }

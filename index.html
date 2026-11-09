@@ -80,6 +80,7 @@
             height="620"
             aria-label="Pot cross-section with liquid parcels coloured by starting layer"
           ></canvas>
+          <span class="section-label">2D cross-section · open pot · enlarged spout</span>
           <p id="prompt" class="prompt">Which layer reaches your cup first? Press <strong>Pour</strong>.</p>
         </div>
         <div class="timeline">
@@ -178,15 +179,18 @@
           <details id="shapeBox">
             <summary>Draw your own pot</summary>
             <p class="hint">
-              Drag the points of the wall. Double-click a wall to add a point; select a point and press Delete
-              (or Remove point) to remove it. Draw from the back rim (left), round the bottom, to the pouring
-              lip (orange, right). The dashed line previews the fill level.
+              Choose a shape, then drag its points. The blue area previews the fill. The orange point is the
+              pouring lip. Keep the top open: draw from the back rim, around the base, to the lip.
             </p>
             <div class="row">
               <button type="button" id="shape-glass">Glass pot</button>
               <button type="button" id="shape-pitcher">Pitcher</button>
               <button type="button" id="shape-bowl">Bowl</button>
               <button type="button" id="shape-jug">Tall jug</button>
+            </div>
+            <div class="row shape-tools">
+              <button type="button" id="shapeNext">Next point</button>
+              <button type="button" id="shapeAdd">Add point after selection</button>
               <button type="button" id="shapeRemove">Remove point</button>
             </div>
             <canvas
@@ -196,6 +200,10 @@
               tabindex="0"
               aria-label="Pot shape editor"
             ></canvas>
+            <p id="shapePoint" class="hint" role="status"></p>
+            <p class="hint">
+              Keyboard: Home/End selects an endpoint. Arrow keys move it 1 mm; Shift moves it 5 mm.
+            </p>
             <p id="shapeErrors" class="errors" role="alert"></p>
             <button type="button" id="shapeUse" class="primary">Use this pot</button>
           </details>

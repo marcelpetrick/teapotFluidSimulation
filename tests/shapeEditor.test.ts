@@ -74,7 +74,7 @@ describe('ShapeEditor (DOM)', () => {
     document.body.innerHTML = `
       <button id="shape-glass"></button><button id="shape-pitcher"></button>
       <button id="shape-bowl"></button><button id="shape-jug"></button>
-      <button id="shapeRemove"></button><canvas id="shapeCanvas" width="460" height="350"></canvas>
+      <button id="shapeNext"></button><button id="shapeAdd"></button><p id="shapePoint"></p><button id="shapeRemove"></button><canvas id="shapeCanvas" width="460" height="350"></canvas>
       <p id="shapeErrors"></p><button id="shapeUse"></button>`;
     const used: Pt[][] = [];
     const ed = new ShapeEditor(
@@ -116,8 +116,31 @@ describe('ShapeEditor (DOM)', () => {
     (document.getElementById('shapeUse') as HTMLButtonElement).click();
     expect(used).toHaveLength(1);
     ed.selected = 1;
+    ed.render();
     (document.getElementById('shapeRemove') as HTMLButtonElement).click();
     c.dispatchEvent(new MouseEvent('pointerleave'));
+  });
+
+  it('supports point controls, keyboard movement and cancellation on touch layouts', () => {
+    const { ed, c } = setup();
+    c.getBoundingClientRect = () => ({ left: 0, top: 0, width: 230, height: 175 }) as DOMRect;
+    document.getElementById('shapeNext')!.click();
+    expect(ed.selected).toBe(0);
+    const before = ed.pts[0][1];
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true }));
+    expect(ed.pts[0][1]).toBeCloseTo(before + 0.005);
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(ed.selected).toBe(ed.pts.length - 1);
+    const count = ed.pts.length;
+    document.getElementById('shapeAdd')!.click();
+    expect(ed.pts).toHaveLength(count + 1);
+    expect(document.getElementById('shapePoint')!.textContent).toContain('cm');
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(ed.selected).toBe(0);
+    c.dispatchEvent(new Event('pointercancel'));
   });
 
   it('starts from a given outline', () => {

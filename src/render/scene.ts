@@ -139,6 +139,13 @@ export function drawVessel(ctx: Ctx2D, v: Viewport, info: StaticInfo, angleDeg: 
       else ctx.lineTo(sx, sy);
     });
     ctx.stroke();
+    // Outline the actual wall thickness like cut glass; keep its physical centreline unchanged.
+    const wallWidth = ctx.lineWidth;
+    ctx.strokeStyle = theme.surface;
+    ctx.lineWidth = Math.max(1, wallWidth - 3);
+    ctx.stroke();
+    ctx.lineWidth = wallWidth;
+    ctx.strokeStyle = theme.wall;
   }
   ctx.globalAlpha = 1;
   if (info.outflow) {
@@ -197,14 +204,20 @@ export function drawParcels(
       ctx.globalAlpha = 0.14;
     }
     const rr = halo ? r * 2.6 : r;
+    let lastColour = '';
     for (let p = 0; p < snap.count; p++) {
       const st = snap.status[p];
       const y = pos[2 * p + 1];
       if (st !== STATUS_IN_POT && st !== STATUS_DISCHARGED) continue;
       if (y < -0.05 || y > maxY * 1.2) continue;
       const k = info.origin[p];
-      ctx.fillStyle = colourOf(p, st, k);
-      const [sx, sy] = toScreen(v, pos[2 * p], y);
+      const colour = colourOf(p, st, k);
+      if (colour !== lastColour) {
+        ctx.fillStyle = colour;
+        lastColour = colour;
+      }
+      const sx = v.ox + pos[2 * p] * v.scale;
+      const sy = v.oy - y * v.scale;
       if (!halo && opts.markers && opts.mode === 'origin') drawMarker(ctx, k, sx, sy, rr);
       else ctx.fillRect(sx - rr, sy - rr, 2 * rr, 2 * rr);
     }
@@ -360,11 +373,16 @@ export function drawInitialMap(
   ctx.globalAlpha = 1;
   const r = Math.max(1, info.h * vp.scale * 0.3);
   // Dim parcels first, then highlighted discharged ones on top.
+  let lastColour = '';
   for (let pass = 0; pass < 2; pass++)
     for (let p = 0; p < info.n; p++) {
       const poured = status[p] === STATUS_DISCHARGED;
       if ((pass === 0) === poured) continue;
-      ctx.fillStyle = poured ? theme.origins[info.origin[p] % theme.origins.length] : theme.dim;
+      const colour = poured ? theme.origins[info.origin[p] % theme.origins.length] : theme.dim;
+      if (colour !== lastColour) {
+        ctx.fillStyle = colour;
+        lastColour = colour;
+      }
       ctx.fillRect(tx(info.x0[p]) - r, ty(info.y0[p]) - r, 2 * r, 2 * r);
     }
   // Band edges.

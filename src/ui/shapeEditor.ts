@@ -140,17 +140,41 @@ export function drawEditor(
     ctx.lineTo(x1, y0);
     ctx.stroke();
   }
-  // Fill preview: the liquid level above the lowest wall point (inner floor).
+  // Close the open rim only for the preview; the solver still uses the open wall outline.
   const floor = Math.min(...pts.map((p) => p[1])) + 0.005;
-  ctx.strokeStyle = theme.origins[0];
-  ctx.setLineDash([6, 4]);
+  const level = floor + fillHeight;
+  const liquid: Pt[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    if (a[1] <= level) liquid.push(a);
+    if ((a[1] < level && b[1] > level) || (a[1] > level && b[1] < level))
+      liquid.push([a[0] + ((level - a[1]) * (b[0] - a[0])) / (b[1] - a[1]), level]);
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = theme.origins[0];
   ctx.beginPath();
-  const [fx0, fy] = v.toPx([0, floor + fillHeight]);
-  const [fx1] = v.toPx([AREA.width, floor + fillHeight]);
-  ctx.moveTo(fx0, fy);
-  ctx.lineTo(fx1, fy);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  liquid.forEach((p, i) => {
+    const [x, y] = v.toPx(p);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  const surface = liquid.filter((p) => p[1] === level);
+  if (surface.length >= 2) {
+    ctx.strokeStyle = theme.origins[0];
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    const [x0, y] = v.toPx([Math.min(...surface.map((p) => p[0])), level]);
+    const [x1] = v.toPx([Math.max(...surface.map((p) => p[0])), level]);
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x1, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   // Wall.
   ctx.strokeStyle = theme.wall;
   ctx.lineWidth = Math.max(2, 0.01 * v.scale);
@@ -167,7 +191,8 @@ export function drawEditor(
   pts.forEach((p, i) => {
     const [sx, sy] = v.toPx(p);
     ctx.beginPath();
-    ctx.arc(sx, sy, i === selected ? 7 : 5, 0, Math.PI * 2);
+    const endpoint = i === 0 || i === pts.length - 1;
+    ctx.arc(sx, sy, i === selected ? 7 : endpoint ? 5 : 2.5, 0, Math.PI * 2);
     ctx.fillStyle = i === pts.length - 1 ? theme.origins[2] : i === selected ? theme.ink : theme.surface;
     ctx.fill();
     ctx.strokeStyle = theme.ink;
@@ -218,11 +243,17 @@ export class ShapeEditor {
       const v = editorView(c.width, c.height);
       return v.toWorld((e.clientX - r.left) * sx, (e.clientY - r.top) * sy);
     };
-    const radius = () => 10 / editorView(c.width, c.height).scale;
+    // Keep the hit area in CSS pixels when the canvas shrinks on a phone.
+    const radius = () => {
+      const width = c.getBoundingClientRect().width || c.width;
+      return (18 * c.width) / width / editorView(c.width, c.height).scale;
+    };
     c.addEventListener('pointerdown', (e) => {
       const [x, y] = pos(e);
       this.selected = hitTest(this.pts, x, y, radius());
       this.dragging = this.selected;
+      c.focus();
+      if (this.dragging >= 0 && e.pointerId !== undefined) c.setPointerCapture(e.pointerId);
       this.render();
     });
     c.addEventListener('pointermove', (e) => {
@@ -235,7 +266,11 @@ export class ShapeEditor {
       this.dragging = -1;
     };
     c.addEventListener('pointerup', stop);
-    c.addEventListener('pointerleave', stop);
+    c.addEventListener('pointercancel', stop);
+    c.addEventListener('lostpointercapture', stop);
+    c.addEventListener('pointerleave', (e) => {
+      if (e.pointerId === undefined || !c.hasPointerCapture(e.pointerId)) stop();
+    });
     c.addEventListener('dblclick', (e) => {
       const [x, y] = pos(e);
       const r = insertPoint(this.pts, ...clampPoint(x, y));
@@ -244,6 +279,22 @@ export class ShapeEditor {
       this.render();
     });
     c.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault();
+        this.selected = e.key === 'Home' ? 0 : this.pts.length - 1;
+        this.render();
+      }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        if (this.selected < 0) this.selected = 0;
+        const [x, y] = this.pts[this.selected];
+        const step = e.shiftKey ? 0.005 : 0.001;
+        this.pts[this.selected] = clampPoint(
+          x + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0),
+          y + (e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0),
+        );
+        this.render();
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         this.removeSelected();
@@ -256,6 +307,18 @@ export class ShapeEditor {
         this.render();
       });
     }
+    this.doc.getElementById('shapeNext')?.addEventListener('click', () => {
+      this.selected = (this.selected + 1) % this.pts.length;
+      this.render();
+    });
+    this.doc.getElementById('shapeAdd')?.addEventListener('click', () => {
+      const i = this.selected < 0 ? 0 : Math.min(this.selected, this.pts.length - 2);
+      const a = this.pts[i];
+      const b = this.pts[i + 1];
+      this.pts.splice(i + 1, 0, clampPoint((a[0] + b[0]) / 2, (a[1] + b[1]) / 2));
+      this.selected = i + 1;
+      this.render();
+    });
     this.el('shapeRemove').addEventListener('click', () => this.removeSelected());
     this.el('shapeUse').addEventListener('click', () => {
       if (validateProfile(this.pts).length === 0) this.host.onUse(this.pts);
@@ -278,5 +341,12 @@ export class ShapeEditor {
     const errs = validateProfile(this.pts);
     this.el('shapeErrors').textContent = errs.join(' ');
     this.el<HTMLButtonElement>('shapeUse').disabled = errs.length > 0;
+    this.el<HTMLButtonElement>('shapeRemove').disabled = this.selected < 0 || this.pts.length <= 3;
+    const point = this.doc.getElementById('shapePoint');
+    if (point)
+      point.textContent =
+        this.selected < 0
+          ? 'Select a point to edit its position.'
+          : `Point ${this.selected + 1} of ${this.pts.length}: ${(this.pts[this.selected][0] * 100).toFixed(1)} cm across, ${(this.pts[this.selected][1] * 100).toFixed(1)} cm high.`;
   }
 }

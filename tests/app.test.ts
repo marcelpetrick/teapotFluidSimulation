@@ -612,3 +612,21 @@ describe('review regressions', () => {
     expect(stored.speed[0]).toBe(0);
   });
 });
+
+describe('render cache', () => {
+  it('redraws the initial map only when status or theme changes', async () => {
+    const t = setup();
+    await t.settle();
+    const ctx = fakeCtx();
+    t.deps.getContext = () => ctx;
+    t.app.applySkin('cyber');
+    const count = () => ctx.calls.filter((c) => c === 'fillRect').length;
+    const first = count();
+    t.app.render();
+    const unchanged = count() - first;
+    const before = count();
+    t.app.snapshot!.status[0] = 1;
+    t.app.render();
+    expect(count() - before).toBeGreaterThan(unchanged + t.app.info!.n / 2);
+  });
+});

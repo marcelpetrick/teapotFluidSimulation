@@ -73,6 +73,8 @@ export const CONTROL_HELP: Record<string, string> = {
     'Pot shape editor. Drag points to reshape the wall; double-click a wall to add a point; select a point and press Delete to remove it.',
   shapeUse:
     'Use the drawn outline as the pot and restart. The fill is lowered automatically if the pot would overflow.',
+  shapeNext: 'Select the next wall point. Use arrow keys to move the selected point.',
+  shapeAdd: 'Insert a point halfway along the wall after the selection, then drag it into place.',
   shapeRemove: 'Remove the selected wall point (a pot needs at least three).',
   'shape-glass': 'Start the editor from the German glass teapot: wide cylinder, lip at the top.',
   'shape-pitcher': 'Start the editor from the pitcher: rounded body with a rising rim lip.',

@@ -150,6 +150,9 @@ export class App {
   runs: RunSummary[] = [];
   private loopStarted = false;
   private recorded = false;
+  private initialMapInfo: StaticInfo | null = null;
+  private initialMapStatus = new Uint8Array(0);
+  private initialMapTheme = '';
   lastError = '';
 
   readonly sound: Soundscape;
@@ -449,7 +452,10 @@ export class App {
       if (this.finished) this.applySettings(this.settings, false);
       this.setRunning(true);
     });
-    on('play', 'click', () => this.setRunning(!this.running));
+    on('play', 'click', () => {
+      this.setRunning(!this.running);
+      if (!this.running) this.post({ type: 'frame' });
+    });
     on('step', 'click', () => {
       this.setRunning(false);
       this.post({ type: 'step' });
@@ -544,6 +550,7 @@ export class App {
       if (e.key === ' ' && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag)) {
         e.preventDefault();
         this.setRunning(!this.running);
+        if (!this.running) this.post({ type: 'frame' });
       }
     });
   }
@@ -932,7 +939,20 @@ export class App {
 
     const im = this.el<HTMLCanvasElement>('initialMap');
     const ictx = this.d.getContext(im);
-    if (ictx) drawInitialMap(ictx, im.width, im.height, info, shown.status, theme);
+    const mapTheme = JSON.stringify(theme);
+    let mapChanged = this.initialMapInfo !== info || this.initialMapTheme !== mapTheme;
+    if (!mapChanged)
+      for (let p = 0; p < shown.status.length; p++)
+        if (shown.status[p] !== this.initialMapStatus[p]) {
+          mapChanged = true;
+          break;
+        }
+    if (ictx && mapChanged) {
+      drawInitialMap(ictx, im.width, im.height, info, shown.status, theme);
+      this.initialMapInfo = info;
+      this.initialMapTheme = mapTheme;
+      this.initialMapStatus = shown.status.slice();
+    }
   }
 
   private updatePanels(): void {
