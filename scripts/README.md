@@ -23,6 +23,12 @@ More helpers:
   `npx tsx benchmarks/profile.ts teapot-gentle 44 3`.
 - `../benchmarks/run.ts` / `../benchmarks/perf.ts` — verification/sensitivity cases and isolated
   throughput (see `docs/validation.md`).
+- `../benchmarks/cavity.ts` — thermal verification, differentially heated cavity vs de Vahl Davis:
+  `npx tsx benchmarks/cavity.ts 48 1000 10000 100000`.
+- `../benchmarks/mg.ts` — MIC(0) vs multigrid pressure preconditioner: `npx tsx benchmarks/mg.ts 96 1`.
+- `../benchmarks/run3d.ts` — offline 3D reference pour: `npx tsx benchmarks/run3d.ts 5 25` (about 12 min).
+- `render3d.ts` — labelled 3D playback GIF of that run:
+  `npx tsx scripts/render3d.ts media/pourlab-vX.Y.Z-3d-teapot.gif 5 14 cyber`.
 
 Typical commit flow:
 

@@ -42,6 +42,7 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 | `src/render/` | Canvas scene and charts                                               |
 | `src/ui/`     | App, shape editor, tooltip texts                                      |
 | `src/audio/`  | Generated soundscape and pour sound                                   |
+| `src/sim3d/`  | Offline 3D reference solver (Node only, not part of the web app)      |
 | `tests/`      | Vitest unit and integration tests (happy-dom for UI)                  |
 | `e2e/`        | Playwright tests against the built site under the Pages sub-path      |
 | `scripts/`    | Helper scripts, documented in `scripts/README.md`                     |

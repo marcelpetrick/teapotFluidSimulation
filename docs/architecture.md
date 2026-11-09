@@ -59,7 +59,7 @@ C4Component
   Container_Boundary(wk, "Worker") {
     Component(host, "SimulationHost", "src/worker/host.ts", "Command handling, time-budgeted pumping, metrics snapshots")
     Component(solver, "Simulation", "src/sim/solver.ts", "MAC grid, PIC/FLIP or APIC, projection, advection, ledger, thermal")
-    Component(pressure, "PressureSolver", "src/sim/pressure.ts", "PCG with MIC(0)")
+    Component(pressure, "PressureSolver", "src/sim/pressure.ts", "PCG with MIC(0) or a multigrid V-cycle (src/sim/multigrid.ts)")
     Component(vessel, "Vessel geometry", "src/sim/vessel.ts", "Capsule SDF, outflow section, pose transforms")
     Component(motion, "PourController", "src/sim/motion.ts", "Automatic pour or manual tilt")
     Component(metrics, "Metrics", "src/sim/metrics.ts", "Composition, bins, region matrix, segregation, survivor cohort")
@@ -79,6 +79,28 @@ C4Component
   Rel(solver, pressure, "solves")
   Rel(solver, vessel, "collides / classifies")
   Rel(solver, motion, "asks for tilt")
+```
+
+## Offline verification and reference tools (Node, not shipped to the browser)
+
+```mermaid
+flowchart LR
+  subgraph sim[src/sim]
+    S2[2D Simulation]
+  end
+  subgraph s3[src/sim3d]
+    S3[Simulation3D: 3D MAC grid, MIC0-PCG 3D, cylindrical teapot with round spout]
+  end
+  B1[benchmarks/run.ts: refinement and sensitivity] --> S2
+  B2[benchmarks/cavity.ts: heated cavity vs de Vahl Davis] --> S2
+  B3[benchmarks/mg.ts: MIC0 vs multigrid] --> S2
+  B4[benchmarks/run3d.ts: 3D reference pour] --> S3
+  R1[scripts/render-gif.ts: GIFs from the built app] --> APP[Production build]
+  R2[scripts/render3d.ts: 3D playback GIF] --> S3
+  B1 --> J[(benchmarks/*.json)]
+  B2 --> J
+  B4 --> J
+  J --> V[docs/validation.md]
 ```
 
 ## Simulation substep
