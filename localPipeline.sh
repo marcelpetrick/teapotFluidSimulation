@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Marcel Petrick
 #
 # Local pipeline, mirrored 1:1 by .github/workflows/pipeline.yml.
-# Stages: install -> format check -> lint -> typecheck -> unit+integration tests with
+# Stages: install -> format check -> markdown links -> lint -> typecheck -> unit+integration tests with
 # coverage (>= 95 % lines, enforced by vite.config.ts) -> production build -> e2e
 # (Chromium + Firefox against the build served under the GitHub Pages sub-path).
 #
@@ -40,6 +40,7 @@ stage() {
 
 if [[ $RUN_INSTALL == 1 ]]; then stage "install (npm ci)" npm ci --no-audit --no-fund; fi
 stage "format check (prettier)" npm run --silent format:check
+stage "markdown links" node scripts/check-links.mjs
 stage "lint (eslint)" npm run --silent lint
 stage "typecheck (tsc)" npm run --silent typecheck
 stage "unit + integration tests with coverage" npm run --silent coverage

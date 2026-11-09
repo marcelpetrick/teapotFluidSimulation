@@ -1,7 +1,7 @@
 # AGENTS.md — working rules for coding agents
 
 Project: **PourLab** — browser 2D fluid experiment answering "where does poured tea come from, and does
-pouring mix the pot?". Spec: [`vision.md`](vision.md). Plan and status: [`plan.md`](plan.md).
+pouring mix the pot?". Spec: [`docs/vision.md`](docs/vision.md). Plan and status: [`docs/plan.md`](docs/plan.md).
 Architecture: [`docs/architecture.md`](docs/architecture.md).
 
 ## Ground rules

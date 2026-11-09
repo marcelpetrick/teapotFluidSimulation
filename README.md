@@ -68,7 +68,7 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 - [`docs/architecture.md`](docs/architecture.md) — C4 diagrams and runtime flowcharts
 - [`docs/sources.md`](docs/sources.md) — literature used
 - [`scripts/README.md`](scripts/README.md) — helper scripts (verified commits, GIF rendering, calibration, …)
-- [`vision.md`](vision.md) · [`plan.md`](plan.md) · [`AGENTS.md`](AGENTS.md) — specification, plan, contributor rules
+- [`docs/vision.md`](docs/vision.md) · [`docs/plan.md`](docs/plan.md) · [`AGENTS.md`](AGENTS.md) — specification, plan, contributor rules
 
 ## How it was built
 
@@ -79,9 +79,9 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 | Build and hosting    | **Vite** static build, **GitHub Pages**, **GitHub Actions**                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Quality              | **Vitest** with V8 coverage (≥ 95 %), **happy-dom** for UI integration tests, **Playwright** end-to-end tests in Chromium and Firefox, **ESLint** (typescript-eslint), **Prettier**, one `localPipeline.sh` shared by developers and CI                                                                                                                                                                                                                        |
 | Media and analysis   | **ffmpeg** for the GIFs (rendered deterministically from the real app), benchmark/profiling scripts in `benchmarks/`, a colour-vision-deficiency palette validator for the layer colours                                                                                                                                                                                                                                                                       |
-| AI                   | Designed from the written specification in [`vision.md`](vision.md) and implemented with **Claude Code** (Anthropic, model **Claude Opus 5.5**): plan, code, tests, reviews and docs, with every commit verified by the full pipeline before it was pushed                                                                                                                                                                                                     |
+| AI                   | Designed from the written specification in [`docs/vision.md`](docs/vision.md) and implemented with **Claude Code** (Anthropic, model **Claude Opus 5.5**): plan, code, tests, reviews and docs, with every commit verified by the full pipeline before it was pushed                                                                                                                                                                                           |
 
 ## License
 
 Copyright (C) 2026 Marcel Petrick &lt;mail@marcelpetrick.it&gt;. Free software under the
-[GNU GPL v3 or later](LICENSE). Generated with AI from the specification in [`vision.md`](vision.md).
+[GNU GPL v3 or later](LICENSE). Generated with AI from the specification in [`docs/vision.md`](docs/vision.md).

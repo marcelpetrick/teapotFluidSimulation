@@ -5,5 +5,5 @@ test-results
 node_modules
 package-lock.json
 LICENSE
-vision.md
+docs/vision.md
 benchmarks/*.json

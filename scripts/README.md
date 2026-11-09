@@ -4,7 +4,7 @@ Small reusable helpers. All are run from the repository root.
 
 | Script                      | Purpose                                                                                                                                                                     | Usage                                                              |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `../localPipeline.sh`       | Full pipeline (install, format, lint, typecheck, coverage ≥ 95 %, build, e2e). CI runs exactly this.                                                                        | `./localPipeline.sh [--no-e2e] [--no-install]`                     |
+| `../localPipeline.sh`       | Full pipeline (install, format, Markdown links, lint, typecheck, coverage ≥ 95 %, build, e2e). CI runs exactly this.                                                        | `./localPipeline.sh [--no-e2e] [--no-install]`                     |
 | `verify-staged.sh`          | Runs the pipeline on **exactly the staged files** (exported into a temp dir with `node_modules` linked), so a commit is proven green before it is made.                     | `scripts/verify-staged.sh [--no-e2e]`                              |
 | `commit.sh`                 | Verify-then-commit: runs `verify-staged.sh` and only commits (and pushes) if it passes.                                                                                     | `scripts/commit.sh "type(scope): subject" [body] [--no-push]`      |
 | `bump-version.sh`           | Bumps `package.json`/lockfile version without tagging. Patch for every commit, minor for major features. Prints the new version.                                            | `scripts/bump-version.sh patch\|minor\|major`                      |
@@ -13,6 +13,9 @@ Small reusable helpers. All are run from the repository root.
 | `screenshot.ts`             | Captures a full-page screenshot (default `docs/screenshot.png`; optional look and mode arguments) from the built site mid-pour with Playwright.                             | `npm run build && npx tsx scripts/screenshot.ts`                   |
 
 More helpers:
+
+- `check-links.mjs` — fails if a relative link or image in any tracked Markdown file is broken (pipeline
+  stage): `node scripts/check-links.mjs`.
 
 - `render-gif.ts` — renders a looping showcase GIF of a preset from the production build, frame by
   frame with single simulation steps (deterministic), via ffmpeg:

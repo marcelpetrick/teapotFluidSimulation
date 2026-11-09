@@ -1,7 +1,7 @@
 # Physics model and numerical method
 
 This documents what PourLab actually computes, with the approximations stated. It implements
-[`vision.md`](../vision.md) §7–§8. Code references are to `src/sim/`.
+[`vision.md`](vision.md) §7–§8. Code references are to `src/sim/`.
 
 ## Equations and units
 

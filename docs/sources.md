@@ -1,6 +1,6 @@
 # Sources
 
-Numbers refer to the bibliography in [`vision.md`](../vision.md) §17 and §18.10. What each source is
+Numbers refer to the bibliography in [`vision.md`](vision.md) §17 and §18.10. What each source is
 used for in PourLab:
 
 | #      | Source                                                                   | Used for                                                                                                |
