@@ -15,9 +15,16 @@ export const CONTROL_HELP: Record<string, string> = {
   volume: 'Overall sound volume.',
   open3d:
     'Load the recorded 3D reference pour (about 2 MB, loaded only now) and view it in 3D: drag to rotate, scroll to zoom, right-drag to pan.',
-  v3play: 'Play or pause the 3D recording. You can rotate and zoom the view at any time.',
-  v3restart: 'Play the 3D recording from the start.',
-  v3speed: 'Playback speed of the 3D recording.',
+  open3dLive:
+    'Compute the 3D pour live on your graphics card (WebGPU) with the GPU port of the 3D solver. Needs a browser with WebGPU; otherwise use the recording.',
+  v3play: 'Play or pause the 3D view (recording or live run). You can rotate and zoom the view at any time.',
+  v3restart: 'Start the 3D pour again from the beginning.',
+  v3speed:
+    'Speed of the 3D view. Live runs never take larger time steps: if your GPU cannot keep up, the pour runs slower than chosen and the info line shows the measured speed.',
+  v3preset:
+    'What the live 3D run computes: the gentle 400 mL pour at 5 mm or finer 4 mm cells, or a pot you tilt yourself with the Tilt slider.',
+  v3tilt:
+    'Live run, tilt by hand: the angle you ask for; the pot follows like a hand would (smoothly, rate-limited).',
   v3reset: 'Return the camera to the starting view.',
   v3scrub: 'Jump to any moment of the 3D recording.',
   pour: 'Start the experiment: the pot tilts, liquid leaves through the spout or lip, then the pot returns upright near the target volume.',

@@ -40,3 +40,23 @@ test('matches the CPU solver step by step from the same seeded state', async ({ 
   expect(r.gpu.pressureIterations).toBeGreaterThan(0);
   expect(r.gpu.lostMl).toBe(0);
 });
+
+test('runs the 3D pour live in the page and labels it as live', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'the live WebGPU view is tested in Chromium');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?preset=tank-rest');
+  await expect(page.locator('#status')).toContainText('Ready', { timeout: 30_000 });
+  await page.locator('#open3dLive').click();
+  await expect(page.locator('#v3status')).toContainText('Live 3D simulation, computed now on your GPU', {
+    timeout: 30_000,
+  });
+  // Software rendering is slow, but simulated time must advance.
+  await expect(page.locator('#v3info')).toContainText(/^Live: .*t = 0\.[1-9]/, { timeout: 60_000 });
+  await expect(page.locator('#v3scrub')).toBeHidden();
+  await page.locator('#v3preset').selectOption('manual-5');
+  await expect(page.locator('#v3tilt')).toBeVisible();
+  await page.locator('#open3d').click();
+  await expect(page.locator('#v3status')).toContainText('Recorded 3D simulation', { timeout: 30_000 });
+  expect(errors).toEqual([]);
+});

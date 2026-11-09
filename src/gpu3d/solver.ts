@@ -84,7 +84,6 @@ const COPY_SRC = 0x04;
 const COPY_DST = 0x08;
 const MAP_READ = 0x01;
 const UNIFORM = 0x40;
-const VERTEX = 0x20;
 const COMPUTE = 0x4; // GPUShaderStage.COMPUTE
 
 export class GpuSimulation3D {
@@ -105,7 +104,6 @@ export class GpuSimulation3D {
   private solveGroups: GPUBindGroup[] = [];
   private renderPipeline!: GPUComputePipeline;
   private renderLayout!: GPUBindGroupLayout;
-  private renderGroups = new Map<GPUBuffer, GPUBindGroup>();
 
   constructor(
     readonly device: GPUDevice,
@@ -140,7 +138,8 @@ export class GpuSimulation3D {
     this.buffer('flags', L.flags * 4, STORAGE | COPY_DST | COPY_SRC);
     this.buffer('pos', n * 16, STORAGE | COPY_DST | COPY_SRC);
     this.buffer('vel', n * 16, STORAGE | COPY_DST | COPY_SRC);
-    this.buffer('statsRead', STAT_SLOTS * 4, MAP_READ | COPY_DST);
+    this.buffer('statsRead0', STAT_SLOTS * 4, MAP_READ | COPY_DST);
+    this.buffer('statsRead1', STAT_SLOTS * 4, MAP_READ | COPY_DST);
     this.buffer('solveA', 16, UNIFORM | COPY_DST);
     this.buffer('solveB', 16, UNIFORM | COPY_DST);
     const pos = new Float32Array(4 * n);
@@ -282,7 +281,26 @@ export class GpuSimulation3D {
     pass.dispatchWorkgroups(groups);
   }
 
-  /** One substep; dt defaults to the stable substep (pass the CPU's dt to compare step by step). */
+  /** Stats of the last submitted substep, still on their way back from the GPU. */
+  private pending: Promise<GpuStats> | null = null;
+  private readSlot = 0;
+
+  /** Wait for the stats of the last submitted substep (makes `stats` and diagnostics current). */
+  async sync(): Promise<void> {
+    if (!this.pending) return;
+    const p = this.pending;
+    this.pending = null;
+    this.stats = await p;
+  }
+
+  /**
+   * One substep; dt defaults to the stable substep (pass the CPU's dt to compare step by step).
+   * Pipelined: the substep is submitted, then the stats of the previous one are awaited, so the GPU
+   * computes while the CPU waits for the small readback. The stable substep and the pour controller
+   * therefore use parcel speeds and discharge one substep older than the CPU solver does (a few
+   * milliseconds). That depends only on GPU results, never on timing: a run stays deterministic.
+   * Call sync() for the stats of the last substep.
+   */
   async step(dt = Math.min(this.stableDt(), this.cfg.duration - this.time)): Promise<void> {
     const { device, buffers: B, layout: L, n } = this;
     const P = L.params;
@@ -328,20 +346,31 @@ export class GpuSimulation3D {
     this.dispatch(pass, 'gradientCorrection', faces);
     this.dispatch(pass, 'advect', n);
     pass.end();
-    enc.copyBufferToBuffer(B.ints, P.aStats * 4, B.statsRead, 0, STAT_SLOTS * 4);
+    const read = B[`statsRead${this.readSlot}`];
+    this.readSlot ^= 1;
+    enc.copyBufferToBuffer(B.ints, P.aStats * 4, read, 0, STAT_SLOTS * 4);
     device.queue.submit([enc.finish()]);
-    await B.statsRead.mapAsync(MAP_READ);
-    this.stats = decodeStats(new Int32Array(B.statsRead.getMappedRange().slice(0)));
-    B.statsRead.unmap();
     this.phi = phi1;
     this.time += dt;
     this.steps++;
+    const previous = this.pending;
+    const last = this.stats;
+    this.pending = read.mapAsync(MAP_READ).then(
+      () => {
+        const stats = decodeStats(new Int32Array(read.getMappedRange().slice(0)));
+        read.unmap();
+        return stats;
+      },
+      (e: unknown) => this.whenDestroyed(e, last),
+    );
+    if (previous) this.stats = await previous;
   }
 
   /** Advance by whole stable substeps (chunk-independent, like the CPU solver). */
   async advance(duration: number): Promise<Diagnostics3D> {
     const end = this.time + duration;
     while (this.time < end - 1e-12 && !this.finished) await this.step();
+    await this.sync();
     return this.diagnostics();
   }
 
@@ -395,45 +424,64 @@ export class GpuSimulation3D {
     };
   }
 
-  /** Size in bytes of a render buffer: xyz of the simulated half and its mirror image. */
+  /** Size in bytes of the render positions: xyz of the simulated half and its mirror image. */
   get renderBytes(): number {
     return this.n * 2 * 3 * 4;
   }
 
-  /** Create a buffer the renderer can draw from (storage for the compute write, vertex for drawing). */
-  createRenderBuffer(): GPUBuffer {
-    return this.device.createBuffer({
-      label: 'parcels',
-      size: this.renderBytes,
-      usage: STORAGE | VERTEX | COPY_SRC,
-    });
-  }
+  private renderGroup: GPUBindGroup | null = null;
+  private renderOut: GPUBuffer | null = null;
+  private renderRead: GPUBuffer | null = null;
 
-  /** Write the current parcel positions (and mirror image) into a render buffer on the GPU. */
-  writeRenderPositions(target: GPUBuffer): void {
-    let group = this.renderGroups.get(target);
-    if (!group) {
-      group = this.device.createBindGroup({
+  /**
+   * Current parcel positions for drawing (the simulated half, then its mirror image), as packed
+   * xyz. One compute pass writes them; one copy brings them back (about 1 MB at 5 mm cells).
+   */
+  async readRenderPositions(): Promise<Float32Array> {
+    const { device } = this;
+    if (!this.renderOut || !this.renderRead || !this.renderGroup) {
+      this.renderOut = this.buffer('renderOut', this.renderBytes, STORAGE | COPY_SRC);
+      this.renderRead = this.buffer('renderRead', this.renderBytes, MAP_READ | COPY_DST);
+      this.renderGroup = device.createBindGroup({
         layout: this.renderLayout,
         entries: [
           { binding: 0, resource: { buffer: this.buffers.params } },
           { binding: 1, resource: { buffer: this.buffers.pos } },
-          { binding: 2, resource: { buffer: target } },
+          { binding: 2, resource: { buffer: this.renderOut } },
         ],
       });
-      this.renderGroups.set(target, group);
     }
-    const enc = this.device.createCommandEncoder({ label: 'render positions' });
+    const enc = device.createCommandEncoder({ label: 'render positions' });
     const pass = enc.beginComputePass();
     pass.setPipeline(this.renderPipeline);
-    pass.setBindGroup(0, group);
+    pass.setBindGroup(0, this.renderGroup);
     const [x, y] = workgroups(this.n);
     pass.dispatchWorkgroups(x, y);
     pass.end();
-    this.device.queue.submit([enc.finish()]);
+    enc.copyBufferToBuffer(this.renderOut, 0, this.renderRead, 0, this.renderBytes);
+    device.queue.submit([enc.finish()]);
+    const read = this.renderRead;
+    try {
+      await read.mapAsync(MAP_READ);
+    } catch (e) {
+      return this.whenDestroyed(e, new Float32Array(0));
+    }
+    const out = new Float32Array(read.getMappedRange().slice(0));
+    read.unmap();
+    return out;
   }
 
+  private destroyed = false;
+
+  /** A readback that fails because the run was stopped meanwhile yields `fallback`; others rethrow. */
+  private whenDestroyed<T>(error: unknown, fallback: T): T {
+    if (this.destroyed) return fallback;
+    throw error;
+  }
+
+  /** Free the GPU buffers. Readbacks still in flight then resolve with their last known data. */
   destroy(): void {
+    this.destroyed = true;
     for (const b of Object.values(this.buffers)) b.destroy();
   }
 }

@@ -67,6 +67,38 @@ function setup(
     },
     themed: 0,
   };
+  const live3d = {
+    live: true,
+    manual: false,
+    finished: false,
+    frames: 1,
+    frame: 0,
+    time: 2,
+    playing: true,
+    speed: 1,
+    onFrame: null as ((f: number) => void) | null,
+    restarts: [] as (string | undefined)[],
+    tilts: [] as number[],
+    disposed: 0,
+    seek() {},
+    resetView() {},
+    resize() {},
+    poured: () => [0, 0, 0],
+    angleDeg: () => 5,
+    applyTheme() {},
+    restart(p?: string) {
+      this.restarts.push(p);
+      this.manual = p === 'manual-5';
+    },
+    setTilt(a: number) {
+      this.tilts.push(a);
+    },
+    realTimeFactor: () => 1,
+    dispose() {
+      this.disposed++;
+    },
+  };
+  (viewer3d as unknown as { dispose: () => void }).dispose = () => undefined;
   const prefs = new Map<string, string>(stored);
   document.body.innerHTML = body;
   const worker = new FakeWorker();
@@ -96,6 +128,12 @@ function setup(
       if (search.includes('no3d')) throw new Error('WebGL is not available in this browser');
       return viewer3d;
     },
+    open3dLive: async (_c, _t, preset) => {
+      if (search.includes('nolive')) throw new Error('no WebGPU adapter');
+      live3d.manual = preset === 'manual-5';
+      return live3d;
+    },
+    webgpu: !search.includes('nowebgpu'),
     prefs: { get: (k) => prefs.get(k) ?? null, set: (k, v) => void prefs.set(k, v) },
   };
   const app = new App(deps);
@@ -116,6 +154,7 @@ function setup(
     audio,
     prefs,
     viewer3d,
+    live3d,
     settle: () => worker.queue,
   };
 }
@@ -432,6 +471,51 @@ describe('App (integration with the real simulation host)', () => {
     $('mode-dark').click();
     expect(t.viewer3d.themed).toBeGreaterThan(0);
     expect(t.app.theme3d().layers).toHaveLength(3);
+  });
+
+  it('runs the 3D pour live on the GPU with its own controls and switches back to the recording', async () => {
+    const t = setup('?preset=tank-rest');
+    await t.settle();
+    await t.app.open3D(true);
+    expect($('v3status').textContent).toMatch(/Live 3D simulation, computed now on your GPU/);
+    expect($('open3dLive').hidden).toBe(true);
+    expect($('open3d').hidden).toBe(false);
+    expect($('v3scrub').hidden).toBe(true);
+    expect($('v3presetBox').hidden).toBe(false);
+    expect($('v3tiltBox').hidden).toBe(true);
+    expect($('v3info').textContent).toMatch(/^Live: 1.00x real time, t = 2.0 s/);
+    t.live3d.finished = true;
+    t.live3d.onFrame?.(0);
+    expect($('v3info').textContent).toMatch(/finished/);
+    const preset = $('v3preset') as HTMLSelectElement;
+    preset.value = 'manual-5';
+    preset.dispatchEvent(new Event('change'));
+    expect(t.live3d.restarts).toEqual(['manual-5']);
+    expect($('v3tiltBox').hidden).toBe(false);
+    const tilt = $('v3tilt') as HTMLInputElement;
+    tilt.value = '40';
+    tilt.dispatchEvent(new Event('input'));
+    expect(t.live3d.tilts).toEqual([40]);
+    const canvas = $('view3dCanvas');
+    await t.app.open3D(false);
+    expect(t.live3d.disposed).toBe(1);
+    expect($('view3dCanvas')).not.toBe(canvas);
+    expect($('v3scrub').hidden).toBe(false);
+    expect($('v3presetBox').hidden).toBe(true);
+    preset.dispatchEvent(new Event('change')); // recording: no restart hook, ignored
+    expect(t.live3d.restarts).toHaveLength(1);
+  });
+
+  it('disables the live run without WebGPU and explains a failed start', async () => {
+    const t = setup('?preset=tank-rest&nowebgpu=1');
+    await t.settle();
+    const b = $('open3dLive') as HTMLButtonElement;
+    expect(b.disabled).toBe(true);
+    expect(b.title).toMatch(/no WebGPU/);
+    const u = setup('?preset=tank-rest&nolive=1');
+    await u.settle();
+    await u.app.open3D(true);
+    expect($('v3status').textContent).toBe('Live 3D run unavailable: no WebGPU adapter');
   });
 
   it('explains when the 3D view cannot open', async () => {

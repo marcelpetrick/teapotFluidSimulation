@@ -33,6 +33,7 @@ export async function compareSteps(device: GPUDevice, cfg: Config3D, steps: numb
       const dt = Math.min(cpu.stableDt(), cfg.duration - cpu.time);
       cpu.step(dt);
       await gpu.step(dt);
+      await gpu.sync(); // the CPU uses the discharge of the step just done: compare without pipelining
     }
     const { pos, vel, status } = await gpu.readParticles();
     const n = cpu.n;
@@ -112,6 +113,7 @@ export async function runPour(
         maxIt = Math.max(maxIt, sim.stats.pressureIterations);
         maxDiv = Math.max(maxDiv, sim.stats.maxDivergence);
       }
+      await sim.sync();
       const d = sim.diagnostics();
       onProgress?.(d);
       if (d.phase === 'done' && doneAt < 0) doneAt = d.time;

@@ -5,6 +5,7 @@
 
 import { App, type WorkerLike } from './ui/app';
 import type { Ctx2D } from './render/scene';
+import type { LivePreset } from './view3d/live';
 
 const worker = new Worker(new URL('./worker/simulation.worker.ts', import.meta.url), { type: 'module' });
 
@@ -38,6 +39,9 @@ const app = new App({
     import('./view3d/load').then((m) =>
       m.open3d(canvas, theme, `${import.meta.env.BASE_URL}data/pour3d.bin.gz`),
     ),
+  open3dLive: (canvas, theme, preset) =>
+    import('./view3d/loadLive').then((m) => m.open3dLive(canvas, theme, preset as LivePreset)),
+  webgpu: 'gpu' in navigator,
   audio: () => {
     const Ctor =
       window.AudioContext ??

@@ -55,7 +55,7 @@ C4Component
     Component(charts, "Charts", "src/render/charts.ts", "Bins, bias, time series")
     Component(help, "Tooltips", "src/ui/help.ts", "What every control is and what it influences")
     Component(sound, "Soundscape", "src/audio/soundscape.ts", "Drones, space wind, shimmer, pour noise")
-    Component(view3d, "3D playback viewer", "src/view3d/ (three.js, lazy chunk)", "Recorded 3D pour with orbit, zoom and pan")
+    Component(view3d, "3D viewer", "src/view3d/ (three.js, lazy chunks)", "Recorded or live 3D pour with orbit, zoom and pan")
     Component(gpu3d, "WebGPU 3D solver", "src/gpu3d/ (WGSL compute)", "Live 3D PIC/FLIP on the GPU; verified against src/sim3d")
   }
   Container_Boundary(wk, "Worker") {
@@ -72,6 +72,7 @@ C4Component
   Rel(app, help, "applies")
   Rel(app, sound, "drives")
   Rel(app, view3d, "opens on demand; fetches data/pour3d.bin.gz")
+  Rel(view3d, gpu3d, "live mode: steps the solver, reads positions back per frame")
   Rel(app, scene, "draws with")
   Rel(app, charts, "draws with")
   Rel(app, config, "validates settings")

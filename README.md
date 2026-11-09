@@ -29,22 +29,24 @@ An offline 3D reference (cylindrical 1.5 L teapot, real round 2 cm spout) gives 
 middle, 20 % top** for the same pour — within about 3 points of the 2D model. The thermal mode is checked
 against the standard heated-cavity benchmark. Details: [`docs/validation.md`](docs/validation.md).
 
-**The 3D view on the live page is a recording, not a live simulation.** **Open 3D view** plays back the
-output of the offline 3D solver. You can rotate, zoom and pan freely while it pours, but you cannot change
-its parameters. The reason is speed: the 3D solver runs on the CPU, and computing one pour takes far too
-long to watch live.
+**The 3D view has two modes.** **Open 3D recording** plays back the offline CPU solver's output. **Run 3D
+live on your GPU** computes the same pour while you watch, with a WebGPU port of that solver. You can
+rotate, zoom and pan in both. Live mode also lets you restart the pour, switch to finer 4 mm cells, or tilt
+the pot yourself. Without WebGPU, the live button is disabled and the recording remains.
 
-| Run                                     | Simulated pour | Compute time (one CPU core) | Compared with real time |
-| --------------------------------------- | -------------- | --------------------------- | ----------------------- |
-| 3D, 5 mm cells, 45 k parcels (half pot) | 11.5 s         | 684 s (≈ 11 min)            | ~60× slower             |
-| 3D, 4 mm cells, 89 k parcels (half pot) | 11.5 s         | 1 636 s (≈ 27 min)          | ~140× slower            |
-| 2D default (live in the browser)        | —              | —                           | 1.2× faster             |
+| Run                                     | Simulated pour | Compute time           | Compared with real time |
+| --------------------------------------- | -------------- | ---------------------- | ----------------------- |
+| 3D CPU, 5 mm cells, 45 k parcels (half) | 11.5 s         | 684 s (one CPU core)   | ~60× slower             |
+| 3D CPU, 4 mm cells, 89 k parcels (half) | 11.5 s         | 1 636 s (one CPU core) | ~140× slower            |
+| 3D GPU, 5 mm cells (RTX A2000 laptop)   | 11.5 s         | 6.4 s                  | 1.8× faster             |
+| 3D GPU, 4 mm cells (RTX A2000 laptop)   | 11.5 s         | 13.3 s                 | 0.87× (slower)          |
+| 2D default (live in the browser)        | —              | —                      | 1.2× faster             |
 
-Most of the cost is the 3D pressure solve on a 66×66×18 grid, which has about 40× the cells of the 2D
-grid, at every substep. A coarser grid would not be fast enough either, and it would leave the 2 cm
-spout only 2–3 cells wide, too coarse to trust the layer shares. So the pour is computed once offline
-(`scripts/record3d.ts`, numbers in [`benchmarks/run3d.json`](benchmarks/run3d.json)) and replayed at
-60 fps. A real-time 3D solver on the GPU (WebGPU) is planned: see [`docs/plan.md`](docs/plan.md).
+The GPU solver reproduces the CPU result: the same poured volume within 0.3 % and the same layer shares
+within 1.3 points (`scripts/verify-gpu.ts`, [`benchmarks/gpu3d.json`](benchmarks/gpu3d.json)). You can run
+the same comparison on your own GPU on the
+[GPU check page](https://marcelpetrick.github.io/teapotFluidSimulation/verify-gpu.html). Most of the GPU
+time goes into the two pressure solves per substep.
 
 ## What you can do
 

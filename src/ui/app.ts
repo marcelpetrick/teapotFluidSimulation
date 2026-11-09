@@ -63,6 +63,10 @@ export interface AppDeps {
   audio: AudioFactory;
   /** Lazily opens the recorded 3D view in a canvas (loads three.js and the recording on demand). */
   open3d?: (canvas: HTMLCanvasElement, theme: Viewer3DTheme) => Promise<Viewer3D>;
+  /** Lazily starts the live WebGPU 3D run (loads three.js and the GPU solver on demand). */
+  open3dLive?: (canvas: HTMLCanvasElement, theme: Viewer3DTheme, preset: string) => Promise<Viewer3D>;
+  /** Whether the browser exposes WebGPU at all (the live 3D run needs it). */
+  webgpu?: boolean;
   /** Per-viewer preferences (e.g. the chosen look); may fail silently. */
   prefs: { get(key: string): string | null; set(key: string, value: string): void };
 }
@@ -105,6 +109,14 @@ export interface Viewer3D {
   poured(): number[];
   angleDeg(): number;
   applyTheme(theme: Viewer3DTheme): void;
+  dispose?(): void;
+  /** Live WebGPU runs only. */
+  readonly live?: boolean;
+  readonly manual?: boolean;
+  readonly finished?: boolean;
+  restart?(preset?: string): void;
+  setTilt?(angleDeg: number): void;
+  realTimeFactor?(): number;
 }
 
 const MAX_STORED_FRAMES = 900;
@@ -441,6 +453,20 @@ export class App {
     });
     on('reset', 'click', () => this.applySettings(this.settings, false));
     on('open3d', 'click', () => void this.open3D());
+    on('open3dLive', 'click', () => void this.open3D(true));
+    on('v3preset', 'change', (e) => {
+      const v = this.viewer3d;
+      if (!v?.restart) return;
+      v.restart((e.target as HTMLSelectElement).value);
+      this.sync3dControls();
+    });
+    on('v3tilt', 'input', (e) => this.viewer3d?.setTilt?.(Number((e.target as HTMLInputElement).value)));
+    if (!this.d.webgpu || !this.d.open3dLive) {
+      const b = this.el<HTMLButtonElement>('open3dLive');
+      b.disabled = true;
+      b.title =
+        'This browser has no WebGPU, so the 3D pour cannot run live here. The recording shows the same solver.';
+    }
     on('v3play', 'click', () => {
       if (!this.viewer3d) return;
       this.viewer3d.playing = !this.viewer3d.playing;
@@ -531,29 +557,59 @@ export class App {
     return { background, wall: t.wall, layers: [t.origins[0], t.origins[1], t.origins[2]] };
   }
 
-  async open3D(): Promise<void> {
-    if (!this.d.open3d) return;
+  /** Open the 3D view: the recording, or (live) the WebGPU solver computing the pour now. */
+  async open3D(live = false): Promise<void> {
+    const open = live ? this.d.open3dLive : this.d.open3d;
+    if (!open) return;
     const status = this.el('v3status');
-    status.textContent = 'Loading the 3D recording...';
-    const canvas = this.el<HTMLCanvasElement>('view3dCanvas');
+    status.textContent = live ? 'Starting the live 3D run on your GPU...' : 'Loading the 3D recording...';
+    // A canvas keeps its first context type (WebGL for the recording, WebGPU for live): switching
+    // modes needs a fresh canvas.
+    let canvas = this.el<HTMLCanvasElement>('view3dCanvas');
+    if (this.viewer3d) {
+      this.viewer3d.dispose?.();
+      this.viewer3d = null;
+      const fresh = canvas.cloneNode(false) as HTMLCanvasElement;
+      canvas.replaceWith(fresh);
+      canvas = fresh;
+    }
     this.el('view3dBox').hidden = false;
     try {
-      this.viewer3d = await this.d.open3d(canvas, this.theme3d());
+      const preset = this.el<HTMLSelectElement>('v3preset').value;
+      this.viewer3d = live
+        ? await this.d.open3dLive!(canvas, this.theme3d(), preset)
+        : await this.d.open3d!(canvas, this.theme3d());
     } catch (e) {
       this.el('view3dBox').hidden = true;
-      status.textContent = `3D view unavailable: ${e instanceof Error ? e.message : String(e)}`;
+      status.textContent = `${live ? 'Live 3D run' : '3D view'} unavailable: ${e instanceof Error ? e.message : String(e)}`;
       return;
     }
     const v = this.viewer3d;
-    this.el('open3d').hidden = true;
-    status.textContent =
-      'Recorded 3D simulation (playback). Drag to rotate, scroll to zoom, right-drag to pan.';
+    this.el('open3d').hidden = !live;
+    this.el('open3dLive').hidden = live;
+    status.textContent = live
+      ? 'Live 3D simulation, computed now on your GPU (WebGPU port of the 3D solver; half pot simulated and mirrored, 5 or 4 mm cells, no surface tension). Drag to rotate, scroll to zoom, right-drag to pan.'
+      : 'Recorded 3D simulation (playback). Drag to rotate, scroll to zoom, right-drag to pan.';
     const scrub = this.el<HTMLInputElement>('v3scrub');
     scrub.max = String(v.frames - 1);
     const rect = canvas.getBoundingClientRect();
     v.resize(Math.max(320, rect.width || canvas.width), Math.max(200, rect.height || canvas.height));
     v.onFrame = (f) => this.update3dInfo(f);
+    this.sync3dControls();
     this.update3dInfo(v.frame);
+  }
+
+  /** Show the controls that apply to the open 3D mode. */
+  private sync3dControls(): void {
+    const v = this.viewer3d;
+    const live = !!v?.live;
+    this.el('v3scrub').hidden = live;
+    this.el('v3presetBox').hidden = !live;
+    this.el('v3tiltBox').hidden = !(live && v?.manual);
+    const play = this.el('v3play');
+    play.textContent = 'Pause';
+    play.setAttribute('aria-pressed', 'true');
+    this.el<HTMLInputElement>('v3tilt').value = '0';
   }
 
   private update3dInfo(frame: number): void {
@@ -563,8 +619,12 @@ export class App {
     const p = v.poured();
     const total = p[0] + p[1] + p[2];
     const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
+    const rtf = v.realTimeFactor?.() ?? 0;
+    const prefix = v.live
+      ? `Live: ${rtf > 0 ? `${rtf.toFixed(2)}x real time, ` : ''}${v.finished ? 'finished, ' : ''}`
+      : '';
     this.el('v3info').textContent =
-      `t = ${v.time.toFixed(1)} s, tilt ${v.angleDeg().toFixed(1)} deg, poured ${total.toFixed(0)} mL` +
+      `${prefix}t = ${v.time.toFixed(1)} s, tilt ${v.angleDeg().toFixed(1)} deg, poured ${total.toFixed(0)} mL` +
       (total > 0
         ? `: ${pct(p[0]).toFixed(0)} % bottom, ${pct(p[1]).toFixed(0)} % middle, ${pct(p[2]).toFixed(0)} % top`
         : '');

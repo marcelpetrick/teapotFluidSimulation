@@ -32,8 +32,9 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 - Performance changes must keep the reference pour bit-for-bit identical, or be justified, re-calibrated
   (`scripts/calibrate-anticipation.ts`) and documented in `docs/validation.md`.
 - Show model limits beside results; label 2D-equivalent volumes.
-- The browser 3D view is a **recording** of the offline CPU solver, which runs about 60× slower than real
-  time. Always label it as a recording; never present it as live.
+- The browser 3D view has two modes: the **recording** of the offline CPU solver (about 60× slower than
+  real time) and the **live** WebGPU run. Always label which one is shown; never present the recording
+  as live, and show the measured speed of a live run.
 - The WebGPU 3D solver (`src/gpu3d/`, `docs/plan.md` phase F) must reproduce the CPU 3D results within
   the stated tolerances (`scripts/verify-gpu.ts`, `e2e/gpuSolver.spec.ts`) after every change to a
   kernel. Without WebGPU, the page falls back to the recording.
@@ -48,7 +49,7 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 | `src/ui/`      | App, shape editor, tooltip texts                                      |
 | `src/audio/`   | Generated soundscape and pour sound                                   |
 | `src/sim3d/`   | Offline 3D reference solver (Node only, not part of the web app)      |
-| `src/view3d/`  | Recorded-3D playback viewer (three.js, lazily loaded) and its format  |
+| `src/view3d/`  | 3D viewer: recorded playback and live WebGPU run (three.js, lazy)     |
 | `src/gpu3d/`   | WebGPU 3D solver (WGSL kernels, host, CPU comparison, GPU check page) |
 | `public/data/` | Recorded 3D pour served with the site (`scripts/record3d.ts`)         |
 | `tests/`       | Vitest unit and integration tests (happy-dom for UI)                  |

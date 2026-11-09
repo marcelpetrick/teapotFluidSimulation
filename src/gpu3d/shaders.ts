@@ -772,7 +772,10 @@ fn pcg(@builtin(local_invocation_index) li: u32) {
 `;
 }
 
-/** Writes world positions (half pot plus mirror image) for rendering, straight on the GPU. */
+/**
+ * Writes world positions (the simulated half, then its mirror image) as packed xyz floats for
+ * rendering. Parcels that fell out of the domain are moved far below the view.
+ */
 export function renderWgsl(): string {
   return /* wgsl */ `
 ${paramsStruct()}

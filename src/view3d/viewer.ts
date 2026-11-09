@@ -7,16 +7,10 @@
 // scene logic can be tested without WebGL.
 
 import {
-  AmbientLight,
   BufferAttribute,
   BufferGeometry,
-  CircleGeometry,
   Color,
-  CylinderGeometry,
-  DirectionalLight,
-  DoubleSide,
   Group,
-  Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
   Points,
@@ -26,6 +20,7 @@ import {
   type Camera,
 } from 'three';
 import type { Recording } from './format';
+import { addLights, buildPot, startCamera } from './scene';
 
 export interface RendererLike {
   setSize(w: number, h: number, updateStyle?: boolean): void;
@@ -68,8 +63,7 @@ export class PourViewer {
   private controls: ControlsLike;
   private points: Points;
   private positions: Float32Array;
-  private pot = new Group();
-  private potInner = new Group();
+  private pot: Group;
   private raf = -1;
   private last = -1;
   /** Playback position in frames (fractional). */
@@ -91,43 +85,11 @@ export class PourViewer {
     this.renderer = deps.createRenderer(canvas);
     this.renderer.setPixelRatio(deps.pixelRatio);
     this.renderer.setClearColor(new Color(theme.background), 1);
-    this.scene.add(new AmbientLight(0xffffff, 1.6));
-    const sun = new DirectionalLight(0xffffff, 1.4);
-    sun.position.set(0.5, 1, 0.8);
-    this.scene.add(sun);
-
+    addLights(this.scene);
     // Pot: transparent shell (body, floor, spout) rotating about the recorded pivot.
-    const t = h.teapot;
-    const glass = new MeshStandardMaterial({
-      color: new Color(theme.wall),
-      transparent: true,
-      opacity: 0.22,
-      side: DoubleSide,
-      depthWrite: false,
-      roughness: 0.15,
-      metalness: 0,
-    });
-    const bodyR = t.radius + t.wall / 2;
-    const body = new Mesh(new CylinderGeometry(bodyR, bodyR, t.height + t.wall, 64, 1, true), glass);
-    body.position.set(0, (t.height - t.wall) / 2, 0);
-    const floor = new Mesh(new CircleGeometry(bodyR, 64), glass);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -t.wall / 2;
-    const a = (t.spoutAngleDeg * Math.PI) / 180;
-    const spoutLen = t.spoutLength;
-    const spout = new Mesh(
-      new CylinderGeometry(t.boreRadius + t.wall / 2, t.boreRadius + t.wall / 2, spoutLen, 32, 1, true),
-      glass,
-    );
-    // Cylinder axis is y: rotate so it points along (cos a, sin a, 0), centred mid-way along the spout.
-    spout.rotation.z = a - Math.PI / 2;
-    const ax = t.radius - t.wall;
-    spout.position.set(ax + (Math.cos(a) * spoutLen) / 2, t.inletHeight + (Math.sin(a) * spoutLen) / 2, 0);
-    this.glass = glass;
-    this.potInner.add(body, floor, spout);
-    this.potInner.position.set(-h.pivot[0], -h.pivot[1], 0);
-    this.pot.add(this.potInner);
-    this.pot.position.set(h.pivotWorld[0], h.pivotWorld[1], h.zOffset);
+    const built = buildPot(h, theme.wall);
+    this.pot = built.pot;
+    this.glass = built.glass;
     this.scene.add(this.pot);
 
     // Parcels: the recorded half plus its mirror image across the symmetry plane.
@@ -153,10 +115,9 @@ export class PourViewer {
     this.points.frustumCulled = false;
     this.scene.add(this.points);
 
-    // Camera looking at the pot from the front-right, slightly above.
-    this.camera = new PerspectiveCamera(38, 1, 0.01, 10);
-    const target = new Vector3(h.pivotWorld[0] + 0.03, h.pivotWorld[1] + 0.01, h.zOffset);
-    this.camera.position.set(target.x + 0.18, target.y + 0.16, target.z + 0.5);
+    const cam = startCamera(h);
+    this.camera = cam.camera;
+    const target = cam.target;
     this.controls = deps.createControls(this.camera, canvas);
     this.controls.target.copy(target);
     this.controls.enableDamping = true;

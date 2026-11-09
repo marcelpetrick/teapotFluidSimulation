@@ -23,7 +23,12 @@ export class FakeBuffer {
   ) {
     this.data = new Uint8Array(size);
   }
+  /** Make the next mappings fail (like a lost device). */
+  failMap = false;
   async mapAsync(): Promise<void> {
+    await Promise.resolve(); // resolves later, like the real queue
+    if (this.destroyed) throw new Error('Buffer was destroyed before mapping was resolved.');
+    if (this.failMap) throw new Error('mapping failed');
     this.mapped = true;
   }
   getMappedRange(): ArrayBuffer {

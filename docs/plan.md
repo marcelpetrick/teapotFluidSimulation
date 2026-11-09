@@ -74,14 +74,14 @@ status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 - [x] 3D reference solver (offline, cylindrical teapot with a round spout): 2D layer shares confirmed within ~3 points — `src/sim3d/`, `benchmarks/run3d.ts`
 - [ ] Physical experiments — need the owner (§14)
 
-### F — real-time 3D in the browser (WebGPU) — planned
+### F — real-time 3D in the browser (WebGPU)
 
 Goal (owner request): run the 3D teapot pour **live and interactively in the browser in real time** on the
 owner's laptop: an Intel Iris Xe and an NVIDIA RTX A2000 Laptop GPU (8 GB), with 20 CPU threads.
 
-Today, the CPU 3D solver is about 60× slower than real time at 5 mm cells, so the live page plays a
+The CPU 3D solver is about 60× slower than real time at 5 mm cells, so the page first only played a
 recording (see README, "Does it hold in 3D?"). The GPU port keeps the same method family, so results stay
-comparable with `src/sim3d/` and the recording.
+comparable with `src/sim3d/` and the recording. Done: the live mode runs at real time on that laptop.
 
 - [x] Port the 3D PIC/FLIP step to WebGPU compute shaders (WGSL) — `src/gpu3d/`:
   - particle-to-grid transfer with atomic or sort-based scatter;
@@ -92,17 +92,22 @@ comparable with `src/sim3d/` and the recording.
   - candidates are multigrid-preconditioned CG (MGPCG) or Jacobi/red-black Gauss–Seidel PCG;
   - acceptance requires the same divergence tolerance as the CPU solver.
 - [x] Verify against the CPU 3D solver for the 5 mm gentle pour — `scripts/verify-gpu.ts`,
-      `benchmarks/gpu3d.json`, `e2e/gpuSolver.spec.ts` (−0.09 % volume, shares within 0.11 points):
+      `benchmarks/gpu3d.json`, `e2e/gpuSolver.spec.ts` (−0.05 % volume, shares within 0.53 points):
   - poured volume within 1 %;
   - layer shares within 2 points;
   - no lost parcels;
   - add a headless test path (Node WebGPU, or a Playwright run with WebGPU enabled) to CI where feasible.
-- [ ] Add a live 3D mode in the existing three.js viewer:
+- [x] Add a live 3D mode in the existing three.js viewer — `src/view3d/live.ts`, `e2e/gpuSolver.spec.ts`:
   - start, pause and reset; tilt and preset controls;
-  - parcels rendered straight from the GPU buffer, with no CPU readback per frame.
+  - ~~parcels rendered straight from the GPU buffer, with no CPU readback per frame~~ — changed: on a
+    hybrid-GPU laptop Chromium cannot present a WebGPU canvas from the discrete GPU (device lost on
+    the shared-image import), so the parcel positions are read back once per frame (about 1 MB) and
+    drawn with WebGL. Measured: no loss of speed (the live pour holds 1.00× real time).
 - [x] Performance target on the owner's laptop: at least 1× real time at 5 mm cells (about 90 k parcels, full
-      pot), measured and recorded in `docs/validation.md` — 1.19× on the RTX A2000 (solver only).
-- [ ] Fallback: if the browser has no WebGPU, keep playing the recording and tell the user why.
+      pot), measured and recorded in `docs/validation.md` — 1.81× on the RTX A2000 (solver only), the
+      live page holds 1.00× (capped at the chosen speed).
+- [x] Fallback: if the browser has no WebGPU, keep playing the recording and tell the user why (the live
+      button is disabled with the reason; a failed start says why) — `tests/app.test.ts`.
 
 ## Owner tasks (vision §14)
 

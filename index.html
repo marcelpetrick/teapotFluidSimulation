@@ -248,14 +248,19 @@
         </details>
       </section>
     </main>
-    <section class="view3d" aria-label="3D reference playback">
-      <h2>3D reference — recorded playback</h2>
+    <section class="view3d" aria-label="3D view">
+      <h2>3D view — recorded reference or live on your GPU</h2>
       <p class="hint">
-        The same 400 mL pour, computed offline by the 3D solver (cylindrical 1.5 L teapot with a real round
-        spout). This is a recording, not a live simulation. Drag to rotate, scroll or pinch to zoom,
-        right-drag or two-finger drag to pan — also while it pours.
+        The same 400 mL pour in 3D (cylindrical 1.5 L teapot with a real round spout). The
+        <strong>recording</strong> was computed offline by the CPU reference solver.
+        <strong>Live</strong> runs the WebGPU port of that solver on your graphics card while you watch
+        (verified against the CPU solver: <a href="./verify-gpu.html">GPU check</a>). Drag to rotate, scroll
+        or pinch to zoom, right-drag or two-finger drag to pan — also while it pours.
       </p>
-      <button id="open3d" type="button" class="primary">Open 3D view</button>
+      <p class="toolbar">
+        <button id="open3d" type="button" class="primary">Open 3D recording</button>
+        <button id="open3dLive" type="button">Run 3D live on your GPU</button>
+      </p>
       <p id="v3status" class="status" role="status" aria-live="polite"></p>
       <div id="view3dBox" hidden>
         <div class="toolbar" role="toolbar" aria-label="3D playback">
@@ -271,6 +276,25 @@
             </select>
           </label>
           <button id="v3reset" type="button">Reset view</button>
+          <label id="v3presetBox" hidden
+            >Live run
+            <select id="v3preset">
+              <option value="gentle-5" selected>Gentle 400 mL pour, 5 mm cells</option>
+              <option value="gentle-4">Gentle 400 mL pour, 4 mm cells (finer, slower)</option>
+              <option value="manual-5">Tilt by hand, 5 mm cells</option>
+            </select>
+          </label>
+          <label id="v3tiltBox" hidden
+            >Tilt
+            <input
+              id="v3tilt"
+              type="range"
+              min="0"
+              max="80"
+              step="1"
+              value="0"
+              aria-label="Tilt angle (degrees)"
+          /></label>
           <input
             id="v3scrub"
             type="range"

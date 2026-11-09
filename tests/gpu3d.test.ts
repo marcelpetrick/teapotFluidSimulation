@@ -194,14 +194,51 @@ describe('gpu3d host', () => {
     expect(sim.dischargedFractions()).toEqual([0.25, 0.5, 0.25]);
   });
 
-  it('writes render positions on the GPU and reuses the bind group per target', () => {
+  it('pipelines the stats readback: a substep sees the stats of the one before the last', async () => {
     const g = fakeGpu();
     const sim = new GpuSimulation3D(g.device, small());
-    const target = sim.createRenderBuffer();
-    expect((target as unknown as FakeBuffer).size).toBe(sim.renderBytes);
-    sim.writeRenderPositions(target);
-    sim.writeRenderPositions(target);
+    const ints = g.buffers.find((b) => b.label === 'ints') as FakeBuffer;
+    const statsAt = sim.layout.params.aStats * 4;
+    const setInPot = (k: number) => new DataView(ints.data.buffer).setInt32(statsAt, k, true);
+    setInPot(11);
+    await sim.step(); // submitted; nothing older to wait for
+    expect(sim.stats.counts[0]).toBe(sim.n);
+    setInPot(22);
+    await sim.step(); // now holds the stats copied by the first substep
+    expect(sim.stats.counts[0]).toBe(11);
+    await sim.sync();
+    expect(sim.stats.counts[0]).toBe(22);
+    await sim.sync(); // nothing pending: no change
+    expect(sim.stats.counts[0]).toBe(22);
+  });
+
+  it('lets readbacks in flight end quietly when the run is stopped, and reports other failures', async () => {
+    const g = fakeGpu();
+    const sim = new GpuSimulation3D(g.device, small());
+    await sim.step();
+    const before = sim.stats;
+    const reading = sim.readRenderPositions();
+    sim.destroy();
+    await sim.sync();
+    expect(sim.stats).toEqual(before);
+    expect((await reading).length).toBe(0);
+    const h = fakeGpu();
+    const other = new GpuSimulation3D(h.device, small());
+    await other.readRenderPositions(); // creates the render buffers
+    for (const b of h.buffers) b.failMap = true;
+    await other.step();
+    await expect(other.sync()).rejects.toThrow('mapping failed');
+    await expect(other.readRenderPositions()).rejects.toThrow('mapping failed');
+  });
+
+  it('reads back render positions (both halves) and reuses its buffers', async () => {
+    const g = fakeGpu();
+    const sim = new GpuSimulation3D(g.device, small());
+    const a = await sim.readRenderPositions();
+    expect(a.length * 4).toBe(sim.renderBytes);
+    await sim.readRenderPositions();
     expect(g.dispatches.filter((d) => d.name === 'render')).toHaveLength(2);
+    expect(g.buffers.filter((b) => b.label === 'renderRead')).toHaveLength(1);
     sim.destroy();
     expect(g.buffers.filter((b) => b.label === 'pos').every((b) => b.destroyed)).toBe(true);
   });

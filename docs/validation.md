@@ -89,7 +89,10 @@ of operations; differences: **f32** instead of f64, parcel-to-grid sums in **fix
 (order-independent, so a run is deterministic on a given GPU), and the pressure solves use a
 **Chebyshev-polynomial-preconditioned CG** (degree 6 on [0.05, 2] for D⁻¹A) in a single workgroup instead
 of the sequential MIC(0)-PCG. Same stopping rule (max residual ≤ 10⁻⁶ · max |b|), same seeded start
-(the CPU constructor seeds both), same pour controller. Raw data:
+(the CPU constructor seeds both), same pour controller. The per-substep stats readback is pipelined:
+the next substep is encoded while the GPU computes, so the stable-substep rule and the pour controller
+use parcel speeds and discharge one substep (about 3 ms) older than on the CPU. That depends only on GPU
+results, so a run stays deterministic. Raw data:
 [`benchmarks/gpu3d.json`](../benchmarks/gpu3d.json). GPU: NVIDIA RTX A2000 Laptop (Ampere), Chromium 158,
 Vulkan.
 
@@ -98,8 +101,13 @@ lost parcels):
 
 | Cells | Poured (GPU / CPU) | Bottom / middle / top, GPU − CPU | Lost | Pressure failures | Speed           | vs CPU |
 | ----- | ------------------ | -------------------------------- | ---- | ----------------- | --------------- | ------ |
-| 5 mm  | 406.4 / 406.8 mL   | +0.05 / +0.06 / −0.10 points     | 0    | 0                 | 1.19× real time | 70×    |
-| 4 mm  | 409.8 / 410.5 mL   | +0.02 / +0.06 / −0.08 points     | 0    | 0                 | 0.59× real time | 83×    |
+| 5 mm  | 406.6 / 406.8 mL   | +0.14 / +0.39 / −0.53 points     | 0    | 0                 | 1.81× real time | 107×   |
+| 4 mm  | 411.7 / 410.5 mL   | +0.65 / +0.58 / −1.23 points     | 0    | 0                 | 0.87× real time | 123×   |
+
+Without the pipelining (stats of the substep just done, exactly as on the CPU) the differences were
+smaller (5 mm: −0.09 % volume, shares within 0.11 points; 4 mm: −0.18 %, within 0.08 points) and the
+speed 1.19× and 0.59×. The extra drift comes from the one-substep lag in the controller's view of the
+discharge; it stays well inside the acceptance band.
 
 Step by step from the identical state with the CPU's substeps: after 20 substeps at 10 mm parcel
 positions agree to about 10⁻⁵ cells RMS (2·10⁻⁴ max) and velocities to 3·10⁻⁵ relative, with no status
@@ -112,10 +120,18 @@ residual target is met, but f32 face velocities limit how small the recomputed d
 Interior parcel density stays at 1.000 ± 0.001 as on the CPU.
 
 Speed: per 5 mm substep the GPU spends about 0.9 ms in the pressure solve, 0.7 ms in the
-density-correction solve and 0.45 ms in all other kernels; the rest is the per-substep readback of a
-64-byte stats block, which the CPU needs for the next stable substep and for the pour controller. Every
-pressure iteration in one workgroup is latency-bound (about 25 µs); a multi-workgroup solver is the next
-lever if finer cells must run in real time. Anyone can repeat the check on their own GPU on the
+density-correction solve and 0.45 ms in all other kernels. Every pressure iteration in one workgroup is
+latency-bound (about 25 µs); a multi-workgroup solver is the next lever if 4 mm cells must run in real
+time.
+
+Live view (`src/view3d/live.ts`): the page runs the solver at the chosen speed (1× by default) and
+draws the parcels with WebGL. Drawing straight from the solver's buffer through a WebGPU canvas was
+tried and dropped: on this hybrid-GPU laptop (Intel Iris Xe display, NVIDIA compute) Chromium loses the
+device when it imports the canvas image from the discrete GPU. So the positions are read back once per
+frame (about 1 MB). Measured in the page (Chromium, WebGL on the Iris Xe, WebGPU on the A2000): the
+gentle 5 mm pour holds **1.00× real time** from start to finish, with or without the readback. The
+hand-tilt preset drops to about 0.75× while the pot is held at 60° (fast flow, small substeps) and
+the info line shows it. Anyone can repeat the check on their own GPU on the
 [GPU check page](https://marcelpetrick.github.io/teapotFluidSimulation/verify-gpu.html).
 
 ## End-to-end configuration checks (`e2e/configurations.spec.ts`, every CI run)
