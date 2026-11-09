@@ -630,3 +630,33 @@ describe('render cache', () => {
     expect(count() - before).toBeGreaterThan(unchanged + t.app.info!.n / 2);
   });
 });
+
+describe('worker request regressions', () => {
+  it('keeps export formats with their requests even when clicks overlap', async () => {
+    const t = setup();
+    await t.settle();
+    document.getElementById('expJson')!.click();
+    document.getElementById('expCsv')!.click();
+    document.getElementById('expCsv')!.click();
+    document.getElementById('expJson')!.click();
+    await t.settle();
+    expect(t.downloads.map((name) => name.slice(name.lastIndexOf('.')))).toEqual([
+      '.json',
+      '.csv',
+      '.csv',
+      '.json',
+    ]);
+  });
+  it('matches the no-pour control duration and stops playback after worker failure', async () => {
+    const t = setup('?preset=teapot-gentle&duration=25');
+    await t.settle();
+    document.getElementById('cmpStill')!.click();
+    await t.settle();
+    expect(t.app.info!.config.duration).toBe(25);
+    t.app.setRunning(true);
+    t.worker.onerror?.(new Error('crash'));
+    expect(t.app.running).toBe(false);
+    expect(t.app.pending).toBe(false);
+    expect(document.getElementById('status')!.textContent).toContain('worker failed');
+  });
+});

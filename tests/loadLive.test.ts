@@ -86,3 +86,15 @@ describe('open3dLive', () => {
     v.dispose();
   });
 });
+
+it('releases the device if solver construction fails', async () => {
+  const g = fakeGpu();
+  const destroyed = { n: 0 };
+  vi.spyOn(g.device, 'createComputePipeline').mockImplementation(() => {
+    throw new Error('pipeline failed');
+  });
+  await expect(
+    open3dLive(document.createElement('canvas'), theme, 'gentle-5', gpuFor(g, destroyed)),
+  ).rejects.toThrow('pipeline failed');
+  expect(destroyed.n).toBe(1);
+});

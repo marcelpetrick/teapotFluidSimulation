@@ -25,20 +25,27 @@ export async function open3dLive(
     device.destroy();
     throw new Error('WebGL is not available in this browser');
   }
-  const viewer = new LivePourViewer(
-    canvas,
-    theme,
-    {
-      createRenderer: () => renderer,
-      createControls: (camera, element) => new OrbitControls(camera, element),
-      createSim: (p) => new GpuSimulation3D(device, liveConfig(p)),
-      schedule: (cb) => requestAnimationFrame(cb),
-      cancel: (id) => cancelAnimationFrame(id),
-      now: () => performance.now(),
-      pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-    },
-    preset,
-  );
+  let viewer: LivePourViewer;
+  try {
+    viewer = new LivePourViewer(
+      canvas,
+      theme,
+      {
+        createRenderer: () => renderer,
+        createControls: (camera, element) => new OrbitControls(camera, element),
+        createSim: (p) => new GpuSimulation3D(device, liveConfig(p)),
+        schedule: (cb) => requestAnimationFrame(cb),
+        cancel: (id) => cancelAnimationFrame(id),
+        now: () => performance.now(),
+        pixelRatio: Math.min(2, window.devicePixelRatio || 1),
+      },
+      preset,
+    );
+  } catch (error) {
+    renderer.dispose();
+    device.destroy();
+    throw error;
+  }
   const dispose = viewer.dispose.bind(viewer);
   viewer.dispose = () => {
     dispose();

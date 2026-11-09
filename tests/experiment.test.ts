@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bandNames,
   buildRecord,
+  temperatureStatistics,
   modelLimitations,
   recordToCsv,
   RECORD_SCHEMA_VERSION,
@@ -56,5 +57,22 @@ describe('experiment record', () => {
   it('band names', () => {
     expect(bandNames(3)).toEqual(['bottom', 'middle', 'top']);
     expect(bandNames(2)).toEqual(['band 1', 'band 2']);
+  });
+});
+
+describe('temperature inventory moments', () => {
+  it('separates remaining-liquid variance from all retained parcel records', () => {
+    const sim = new Simulation(cfgFor('thermal-stratified'));
+    sim.temperature.fill(300);
+    sim.temperature[0] = 310;
+    sim.temperature[1] = 290;
+    sim.status[0] = sim.status[1] = 1;
+    const record = buildRecord(sim, 'test');
+    expect(record.temperatureStatistics!.remaining.meanK).toBe(300);
+    expect(record.temperatureStatistics!.remaining.varianceK2).toBe(0);
+    expect(record.temperatureStatistics!.allParcels.meanK).toBe(300);
+    expect(record.temperatureStatistics!.allParcels.varianceK2).toBeCloseTo(200 / sim.n, 12);
+    sim.status.fill(1);
+    expect(temperatureStatistics(sim, true)).toEqual({ volume: 0, meanK: null, varianceK2: null });
   });
 });

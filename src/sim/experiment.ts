@@ -5,7 +5,7 @@
 
 import { dischargeBins, mixingReport, originComposition, regionMatrix, summarize } from './metrics';
 import { SOLVER_VERSION, type Simulation } from './solver';
-import type { ExperimentConfig } from './types';
+import { STATUS_IN_POT, type ExperimentConfig } from './types';
 
 export const RECORD_SCHEMA_VERSION = 1;
 
@@ -26,6 +26,7 @@ export function modelLimitations(cfg: ExperimentConfig): string[] {
     'Walls are free-slip and voxelised on the pressure grid (stair-stepped); wall boundary layers are not resolved.',
     'The receiving glass is an accounting display only; liquid in it is not simulated.',
     `Numerical stabilisation: PIC/FLIP blend ${cfg.transfer === 'flip' ? cfg.flipRatio.toFixed(2) : '(APIC)'}, position-only density correction ${cfg.densityCorrection}; both can move parcels and are logged.`,
+    'Exploratory model: represented-volume drift can exceed the provisional 1% gate even when the parcel ledger closes.',
     'Not validated against measurements; results are a qualitative instrument, not a calibrated digital twin.',
   ];
   if (cfg.thermal.mode === 'passive')
@@ -35,6 +36,25 @@ export function modelLimitations(cfg: ExperimentConfig): string[] {
       'Boussinesq buoyancy with linear expansion; cooling uses prescribed heat-transfer coefficients on cell faces (front/back walls ignored).',
     );
   return lim;
+}
+
+/** Volume-weighted temperature moments; equal parcel volumes reduce these to population moments. */
+export function temperatureStatistics(sim: Simulation, remainingOnly: boolean) {
+  let count = 0;
+  let sum = 0;
+  for (let p = 0; p < sim.n; p++) {
+    if (remainingOnly && sim.status[p] !== STATUS_IN_POT) continue;
+    count++;
+    sum += sim.temperature[p];
+  }
+  const mean = count > 0 ? sum / count : null;
+  let variance = 0;
+  if (mean !== null)
+    for (let p = 0; p < sim.n; p++) {
+      if (remainingOnly && sim.status[p] !== STATUS_IN_POT) continue;
+      variance += (sim.temperature[p] - mean) ** 2;
+    }
+  return { volume: count * sim.parcelVolume, meanK: mean, varianceK2: count > 0 ? variance / count : null };
 }
 
 export interface ExperimentRecord {
@@ -62,6 +82,10 @@ export interface ExperimentRecord {
   summary: string[];
   history: Simulation['history'];
   limitations: string[];
+  temperatureStatistics: {
+    remaining: ReturnType<typeof temperatureStatistics>;
+    allParcels: ReturnType<typeof temperatureStatistics>;
+  } | null;
   provenance: string;
 }
 
@@ -98,6 +122,13 @@ export function buildRecord(sim: Simulation, appVersion: string, now = new Date(
     summary: summarize(comp, mix, names, sim.cfg.motion.targetVolume * 1e6),
     history: sim.history,
     limitations: modelLimitations(sim.cfg),
+    temperatureStatistics:
+      sim.cfg.thermal.mode === 'off'
+        ? null
+        : {
+            remaining: temperatureStatistics(sim, true),
+            allParcels: temperatureStatistics(sim, false),
+          },
     provenance:
       'PourLab browser simulation (2D PIC/FLIP or APIC, MAC grid, PCG pressure). Deterministic for identical code, configuration and seed.',
   };

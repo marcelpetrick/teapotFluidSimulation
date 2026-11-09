@@ -363,6 +363,9 @@ export class GpuSimulation3D {
       },
       (e: unknown) => this.whenDestroyed(e, last),
     );
+    // A paused or finished caller may not consume this promise until a later step/sync.
+    // Observe rejection immediately, while preserving it for that consumer to report.
+    void this.pending.catch(() => {});
     if (previous) this.stats = await previous;
   }
 

@@ -163,7 +163,11 @@ export class App {
     this.sound = new Soundscape(deps.audio);
     this.settings = settingsFromQuery(deps.location.search);
     deps.worker.onmessage = (e) => this.onMessage(e.data);
-    deps.worker.onerror = () => this.setStatus('The simulation worker failed. Reload the page to retry.');
+    deps.worker.onerror = () => {
+      this.pending = false;
+      this.setRunning(false);
+      this.setStatus('The simulation worker failed. Reload the page to retry.');
+    };
   }
 
   el<T extends HTMLElement>(id: string): T {
@@ -519,7 +523,9 @@ export class App {
         () => this.setStatus(url),
       );
     });
-    on('cmpStill', 'click', () => this.loadPreset('teapot-still'));
+    on('cmpStill', 'click', () =>
+      this.applySettings({ ...this.settings, preset: 'teapot-still', control: 'auto', targetMl: 0 }),
+    );
     on('cmpSlow', 'click', () => this.loadPreset('teapot-slow'));
     on('cmpSpout', 'click', () => this.loadPreset(NEXT_POT[this.settings.vessel] ?? 'teapot-gentle'));
     for (const id of ['mode', 'highlight', 'pathlines', 'arrows', 'markers'])
@@ -532,11 +538,8 @@ export class App {
       this.scrubIndex = Number((e.target as HTMLInputElement).value);
       this.render();
     });
-    on('expJson', 'click', () => this.post({ type: 'export' }));
-    on('expCsv', 'click', () => {
-      this.wantCsv = true;
-      this.post({ type: 'export' });
-    });
+    on('expJson', 'click', () => this.post({ type: 'export', format: 'json' }));
+    on('expCsv', 'click', () => this.post({ type: 'export', format: 'csv' }));
     on('expPng', 'click', () => {
       const c = this.el<HTMLCanvasElement>('scene');
       try {
@@ -555,7 +558,6 @@ export class App {
     });
   }
 
-  private wantCsv = false;
   editor: ShapeEditor | null = null;
   viewer3d: Viewer3D | null = null;
 
@@ -759,9 +761,8 @@ export class App {
         this.render();
         break;
       case 'export':
-        if (this.wantCsv) this.d.download(`${m.fileStem}.csv`, m.csv);
+        if (m.format === 'csv') this.d.download(`${m.fileStem}.csv`, m.csv);
         else this.d.download(`${m.fileStem}.json`, m.json);
-        this.wantCsv = false;
         break;
       case 'error':
         this.lastError = m.message;
@@ -1120,6 +1121,7 @@ export class App {
       ['Wall treatment', 'free-slip, voxelised'],
       ['Viscosity', cfg.viscosity ? `${cfg.kinematicViscosity.toExponential(2)} m2/s (explicit)` : 'off'],
       ['Thermal mode', cfg.thermal.mode],
+      ['Thermal diffusivity', `${cfg.thermalDiffusivity.toExponential(2)} m2/s`],
       [
         'Mean temperature',
         cfg.thermal.mode === 'off' ? 'n/a' : `${(d.meanTemperature - 273.15).toFixed(2)} degC`,

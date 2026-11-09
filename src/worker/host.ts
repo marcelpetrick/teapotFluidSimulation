@@ -18,7 +18,7 @@ export type ToWorker =
   | { type: 'step' }
   | { type: 'speed'; value: number }
   | { type: 'tilt'; angleDeg: number }
-  | { type: 'export' };
+  | { type: 'export'; format?: 'json' | 'csv' };
 
 export interface StaticInfo {
   config: ExperimentConfig;
@@ -66,7 +66,7 @@ export type FromWorker =
       finished: boolean;
       realtimeFactor: number;
     }
-  | { type: 'export'; json: string; csv: string; fileStem: string }
+  | { type: 'export'; format?: 'json' | 'csv'; json: string; csv: string; fileStem: string }
   | { type: 'error'; message: string };
 
 /** Largest simulated-time backlog (s); beyond it the run slows down and says so. */
@@ -162,6 +162,7 @@ export class SimulationHost {
         return [
           {
             type: 'export',
+            format: msg.format ?? 'json',
             json: JSON.stringify(rec, null, 1),
             csv: recordToCsv(rec),
             fileStem: `pourlab-${s.cfg.presetId}-seed${s.cfg.seed}-t${s.time.toFixed(1)}`,
