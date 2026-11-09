@@ -20,7 +20,7 @@ import {
   type Camera,
 } from 'three';
 import type { Recording } from './format';
-import { addLights, buildPot, startCamera } from './scene';
+import { addLights, buildPot, startCamera, disposeObjects } from './scene';
 
 export interface RendererLike {
   setSize(w: number, h: number, updateStyle?: boolean): void;
@@ -230,6 +230,6 @@ export class PourViewer {
     if (this.raf >= 0) this.deps.cancel(this.raf);
     this.controls.dispose();
     this.renderer.dispose();
-    this.points.geometry.dispose();
+    disposeObjects(this.scene);
   }
 }

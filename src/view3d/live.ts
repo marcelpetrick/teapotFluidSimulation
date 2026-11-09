@@ -22,7 +22,7 @@ import type { MotionPhase } from '../sim/motion';
 import { gentlePour3D } from '../sim3d/presets3d';
 import type { Config3D } from '../sim3d/solver3d';
 import type { Teapot3DConfig } from '../sim3d/vessel3d';
-import { addLights, buildPot, startCamera } from './scene';
+import { addLights, buildPot, startCamera, disposeObjects } from './scene';
 import type { ControlsLike, RendererLike, ViewerTheme } from './viewer';
 
 /** The part of GpuSimulation3D the view uses (structural, so tests can drive it without a GPU). */
@@ -92,6 +92,7 @@ export class LivePourViewer {
   playing = true;
   speed = 1;
   onFrame: ((frame: number) => void) | null = null;
+  onError: ((message: string) => void) | null = null;
   sim: LiveSim;
   preset: LivePreset;
   private renderer: RendererLike;
@@ -109,6 +110,7 @@ export class LivePourViewer {
   private goal = 0;
   private doneAt = -1;
   private disposed = false;
+  private failed = false;
   /** Measured simulated seconds per wall-clock second while playing (smoothed). */
   private rate = 0;
 
@@ -149,7 +151,7 @@ export class LivePourViewer {
   private buildParcels(): void {
     if (this.points) {
       this.scene.remove(this.points);
-      this.points.geometry.dispose();
+      disposeObjects(this.points);
     }
     const { n, cpu } = this.sim;
     const pos = new Float32Array(6 * n);
@@ -193,6 +195,8 @@ export class LivePourViewer {
       const attr = this.points.geometry.getAttribute('position') as BufferAttribute;
       (attr.array as Float32Array).set(data);
       attr.needsUpdate = true;
+    } catch (e) {
+      if (sim === this.sim) this.fail(e);
     } finally {
       this.reading = false;
     }
@@ -234,6 +238,7 @@ export class LivePourViewer {
     this.sim.destroy();
     this.preset = preset;
     this.sim = this.deps.createSim(preset);
+    this.failed = false;
     this.doneAt = -1;
     this.rate = 0;
     this.goal = 0;
@@ -241,6 +246,7 @@ export class LivePourViewer {
     this.buildParcels();
     if (changed) {
       this.scene.remove(this.pot);
+      disposeObjects(this.pot);
       const built = buildPot(this.placement(), this.theme.wall);
       this.pot = built.pot;
       this.glass = built.glass;
@@ -289,9 +295,18 @@ export class LivePourViewer {
         await sim.step();
         if (sim.controller.phase === 'done' && this.doneAt < 0 && !this.manual) this.doneAt = sim.time;
       }
+    } catch (e) {
+      if (sim === this.sim) this.fail(e);
     } finally {
       this.busy = false;
     }
+  }
+
+  private fail(error: unknown): void {
+    if (this.disposed || this.failed) return;
+    this.failed = true;
+    this.playing = false;
+    this.onError?.(error instanceof Error ? error.message : String(error));
   }
 
   /** Measure simulated seconds per wall-clock second over windows of at least half a second. */
@@ -320,7 +335,7 @@ export class LivePourViewer {
       if (!this.busy) void this.pump();
     } else this.goal = this.sim.time;
     this.measure();
-    void this.refreshPositions();
+    if (!this.failed) void this.refreshPositions();
     this.pot.rotation.z = (-this.sim.controller.angleDeg * Math.PI) / 180;
     this.controls.update();
     this.renderer.render(this.scene, this.camera as Camera);
@@ -343,5 +358,6 @@ export class LivePourViewer {
     this.controls.dispose();
     this.renderer.dispose();
     this.sim.destroy();
+    disposeObjects(this.scene);
   }
 }

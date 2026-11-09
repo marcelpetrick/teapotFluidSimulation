@@ -5,7 +5,7 @@
 // The live 3D view with a scripted stand-in for the WebGPU solver (the real solver runs in the
 // browser tests). Checks pacing, readback, presets, manual tilt, theme and lifecycle.
 import { BufferAttribute, Color, Points, Vector3 } from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { MotionPhase } from '../src/sim/motion';
 import { defaultTeapot3D } from '../src/sim3d/vessel3d';
 import {
@@ -230,5 +230,38 @@ describe('live 3D view', () => {
     expect(renderer.renders).toBe(2);
     v.dispose();
     expect(renderer.disposed && controls.disposed && sims[0].destroyed).toBe(true);
+  });
+});
+
+describe('live viewer failure handling', () => {
+  it('stops and reports a failed GPU substep without an unhandled rejection', async () => {
+    const { v, sims, flush } = setup();
+    const error = vi.fn();
+    v.onError = error;
+    sims[0].step = async () => {
+      throw new Error('device lost');
+    };
+    v.tick(100);
+    await flush();
+    expect(v.playing).toBe(false);
+    expect(error).toHaveBeenCalledWith('device lost');
+    v.dispose();
+  });
+
+  it('reports render readback failures and frees replaced materials', async () => {
+    const { v, sims, flush } = setup();
+    const error = vi.fn();
+    v.onError = error;
+    const points = v.scene.children.find((c) => c instanceof Points) as Points;
+    const dispose = vi.spyOn(points.material as import('three').Material, 'dispose');
+    sims[0].readRenderPositions = async () => {
+      throw new Error('read failed');
+    };
+    v.tick(0);
+    await flush();
+    expect(error).toHaveBeenCalledWith('read failed');
+    v.restart('gentle-4');
+    expect(dispose).toHaveBeenCalledTimes(1);
+    v.dispose();
   });
 });

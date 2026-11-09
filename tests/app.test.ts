@@ -146,6 +146,7 @@ function setup(
   };
   return {
     app,
+    deps,
     worker,
     tick,
     downloads,
@@ -569,5 +570,45 @@ describe('App (integration with the real simulation host)', () => {
         realtimeFactor: 1,
       });
     expect(t.app.frames.length).toBeLessThanOrEqual(30);
+  });
+});
+
+describe('review regressions', () => {
+  it('serializes 3D loading and preserves the selected playback speed', async () => {
+    const t = setup();
+    await t.settle();
+    let resolve!: (v: typeof t.viewer3d) => void;
+    t.deps.open3d = vi.fn(
+      () =>
+        new Promise<typeof t.viewer3d>((r) => {
+          resolve = r;
+        }),
+    );
+    const first = t.app.open3D();
+    await t.app.open3D();
+    expect(t.deps.open3d).toHaveBeenCalledTimes(1);
+    expect((document.getElementById('open3d') as HTMLButtonElement).disabled).toBe(true);
+    (document.getElementById('v3speed') as HTMLSelectElement).value = '2';
+    resolve(t.viewer3d);
+    await first;
+    expect(t.viewer3d.speed).toBe(2);
+    document.getElementById('v3play')!.click();
+    document.getElementById('v3restart')!.click();
+    expect(document.getElementById('v3play')!.textContent).toBe('Pause');
+    t.app.viewer3d!.playing = false;
+    t.app.viewer3d!.onError!('device lost');
+    expect(document.getElementById('v3status')!.textContent).toContain('device lost');
+    expect(document.getElementById('v3play')!.textContent).toBe('Play');
+  });
+
+  it('stores speed and temperature with the timeline snapshot', async () => {
+    const t = setup('?preset=thermal-stratified&duration=2');
+    await t.settle();
+    const stored = t.app.frames[0];
+    expect(stored.speed).toEqual(t.app.snapshot!.speed);
+    expect(stored.speed).not.toBe(t.app.snapshot!.speed);
+    expect(stored.temperature).toEqual(t.app.snapshot!.temperature);
+    t.app.snapshot!.speed.fill(5);
+    expect(stored.speed[0]).toBe(0);
   });
 });

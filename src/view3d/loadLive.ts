@@ -39,6 +39,11 @@ export async function open3dLive(
     },
     preset,
   );
+  const dispose = viewer.dispose.bind(viewer);
+  viewer.dispose = () => {
+    dispose();
+    device.destroy();
+  };
   viewer.start();
   return viewer;
 }

@@ -14,6 +14,8 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  Points,
+  type Object3D,
   PerspectiveCamera,
   Vector3,
   type Scene,
@@ -81,4 +83,18 @@ export function startCamera(p: PotPlacement): { camera: PerspectiveCamera; targe
   const target = new Vector3(p.pivotWorld[0] + 0.03, p.pivotWorld[1] + 0.01, p.zOffset);
   camera.position.set(target.x + 0.18, target.y + 0.16, target.z + 0.5);
   return { camera, target };
+}
+
+/** Release scene-owned geometry and materials, including shared pot materials only once. */
+export function disposeObjects(root: Object3D): void {
+  const geometries = new Set<import('three').BufferGeometry>();
+  const materials = new Set<import('three').Material>();
+  root.traverse((object) => {
+    if (!(object instanceof Mesh || object instanceof Points)) return;
+    geometries.add(object.geometry);
+    for (const material of Array.isArray(object.material) ? object.material : [object.material])
+      materials.add(material);
+  });
+  for (const geometry of geometries) geometry.dispose();
+  for (const material of materials) material.dispose();
 }

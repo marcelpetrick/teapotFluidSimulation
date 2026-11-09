@@ -76,6 +76,8 @@ interface StoredFrame {
   angleDeg: number;
   positions: Float32Array;
   status: Uint8Array;
+  speed: Float32Array;
+  temperature: Float32Array | null;
 }
 
 export interface RunSummary {
@@ -111,6 +113,7 @@ export interface Viewer3D {
   applyTheme(theme: Viewer3DTheme): void;
   dispose?(): void;
   /** Live WebGPU runs only. */
+  onError?: ((message: string) => void) | null;
   readonly live?: boolean;
   readonly manual?: boolean;
   readonly finished?: boolean;
@@ -477,6 +480,7 @@ export class App {
     on('v3restart', 'click', () => {
       this.viewer3d?.seek(0);
       if (this.viewer3d) this.viewer3d.playing = true;
+      this.sync3dControls();
     });
     on('v3speed', 'change', (e) => {
       if (this.viewer3d) this.viewer3d.speed = Number((e.target as HTMLSelectElement).value);
@@ -557,14 +561,18 @@ export class App {
     return { background, wall: t.wall, layers: [t.origins[0], t.origins[1], t.origins[2]] };
   }
 
+  private opening3d = false;
+
   /** Open the 3D view: the recording, or (live) the WebGPU solver computing the pour now. */
   async open3D(live = false): Promise<void> {
     const open = live ? this.d.open3dLive : this.d.open3d;
-    if (!open) return;
+    if (!open || this.opening3d) return;
+    this.opening3d = true;
+    this.el<HTMLButtonElement>('open3d').disabled = true;
+    this.el<HTMLButtonElement>('open3dLive').disabled = true;
     const status = this.el('v3status');
     status.textContent = live ? 'Starting the live 3D run on your GPU...' : 'Loading the 3D recording...';
-    // A canvas keeps its first context type (WebGL for the recording, WebGPU for live): switching
-    // modes needs a fresh canvas.
+    // Each viewer owns its WebGL context. Give replacement viewers a fresh canvas.
     let canvas = this.el<HTMLCanvasElement>('view3dCanvas');
     if (this.viewer3d) {
       this.viewer3d.dispose?.();
@@ -583,8 +591,17 @@ export class App {
       this.el('view3dBox').hidden = true;
       status.textContent = `${live ? 'Live 3D run' : '3D view'} unavailable: ${e instanceof Error ? e.message : String(e)}`;
       return;
+    } finally {
+      this.opening3d = false;
+      this.el<HTMLButtonElement>('open3d').disabled = false;
+      this.el<HTMLButtonElement>('open3dLive').disabled = !this.d.webgpu || !this.d.open3dLive;
     }
     const v = this.viewer3d;
+    v.onError = (message) => {
+      status.textContent = `Live 3D run stopped: ${message}. Restart the run or open the recording.`;
+      this.sync3dControls();
+    };
+    v.speed = Number(this.el<HTMLSelectElement>('v3speed').value);
     this.el('open3d').hidden = !live;
     this.el('open3dLive').hidden = live;
     status.textContent = live
@@ -607,8 +624,8 @@ export class App {
     this.el('v3presetBox').hidden = !live;
     this.el('v3tiltBox').hidden = !(live && v?.manual);
     const play = this.el('v3play');
-    play.textContent = 'Pause';
-    play.setAttribute('aria-pressed', 'true');
+    play.textContent = v?.playing ? 'Pause' : 'Play';
+    play.setAttribute('aria-pressed', String(!!v?.playing));
     this.el<HTMLInputElement>('v3tilt').value = '0';
   }
 
@@ -749,7 +766,8 @@ export class App {
   }
 
   private storeFrame(s: RenderSnapshot): void {
-    const bytesPerFrame = s.positions.byteLength + s.status.byteLength;
+    const bytesPerFrame =
+      s.positions.byteLength + s.status.byteLength + s.speed.byteLength + (s.temperature?.byteLength ?? 0);
     const cap = Math.max(30, Math.min(MAX_STORED_FRAMES, Math.floor(FRAME_STORE_BYTES / bytesPerFrame)));
     if (this.frames.length >= cap) {
       // Thin the history by half to stay bounded while keeping the whole run scrubbable.
@@ -760,6 +778,8 @@ export class App {
       angleDeg: s.angleDeg,
       positions: s.positions.slice(),
       status: s.status.slice(),
+      speed: s.speed.slice(),
+      temperature: s.temperature?.slice() ?? null,
     });
     const scrub = this.el<HTMLInputElement>('scrub');
     scrub.max = String(this.frames.length - 1);
@@ -878,6 +898,8 @@ export class App {
           angleDeg: frame.angleDeg,
           positions: frame.positions,
           status: frame.status,
+          speed: frame.speed,
+          temperature: frame.temperature,
         }
       : snap;
     const tr: [number, number] = [
