@@ -14,6 +14,14 @@ Small reusable helpers. All are run from the repository root.
 
 More helpers:
 
+- `measure-ui.ts` — paused render-call cost at default and maximum parcel counts, plus a phone-sized CPU-throttled case:
+  `npm run build && npx tsx scripts/measure-ui.ts`. This does not measure real-phone performance.
+- `../benchmarks/review-profile.ts` — full reference-state hash and isolated solver time:
+  `npx tsx benchmarks/review-profile.ts [checkout-root] [repetitions]`.
+
+- `check-requirements.mjs` — checks unique requirement IDs, status counts, evidence links and coverage of all numbered vision sections:
+  `node scripts/check-requirements.mjs`. It checks structure, not scientific validity.
+
 - `check-links.mjs` — fails if a relative link or image in any tracked Markdown file is broken (pipeline
   stage): `node scripts/check-links.mjs`.
 

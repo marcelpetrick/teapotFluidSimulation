@@ -80,7 +80,7 @@ least 6–8 cells) is multiplied by the same depth (~8.6 cm), the spout is far w
    pot-local positions) is **discharged** once; leaving the vessel envelope or reaching the domain edge
    otherwise is a **spill**; non-finite state is **lost**. Removed parcels continue on a visual-only
    ballistic path.
-10. Thermal mode: parcel temperatures → cell centres, explicit diffusion and boundary heat transfer
+10. Thermal mode: use cell temperatures transferred during step 3. Apply explicit diffusion and boundary heat transfer
     `−h (T − T_ambient)/(ρ c_p h_cell)` on wall and free-surface faces; parcels receive the
     interpolated change (FLIP-style, no smoothing). The heat inventory including boundary losses and
     removed parcels is checked every frame.

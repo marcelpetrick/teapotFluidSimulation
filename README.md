@@ -58,13 +58,23 @@ time goes into the two pressure solves per substep.
   poured tea started, mixing scores, and how the rest was rearranged.
 - Switch the **look** between a clean lab view and **cyber neon** (glass panels, glowing liquid).
 - Turn on **sound**: a generated space ambience plus a pouring sound that follows the flow.
-- **Share** a link that reproduces the exact experiment; export **JSON**, **CSV** and **PNG**.
+- **Share** initial settings through a link; export **JSON**, **CSV** and **PNG**.
 - See the pour in **3D**: play the recorded reference, or **run it live on your GPU** (WebGPU) and tilt
   the pot yourself. The [GPU check page](https://marcelpetrick.github.io/teapotFluidSimulation/verify-gpu.html)
   compares the GPU solver with the CPU reference on your machine.
 
 Every control has a tooltip that explains what it does. Model limits are always shown next to the
 results: this is a qualitative 2D model, not a calibrated digital twin of your teapot.
+
+## Performance and evidence
+
+The review measured render-call cost at the maximum 180,035 parcels: **147 ms → 11 ms** on the reference laptop.
+This measures drawing work, not real-time simulation at maximum resolution.
+The CPU-throttled phone layout also improved; real-phone performance remains unmeasured.
+See [performance evidence](docs/performance.md) for the method and raw data.
+
+The represented-volume drift gate remains unmet. Results are exploratory, with no measured real-pot validation.
+The [151-row requirements matrix](docs/requirements.md) records completed work and the remaining gaps.
 
 ## Run locally
 
@@ -85,6 +95,13 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 
 ## Documentation
 
+- [User guide](docs/guide.md) — short procedures, controls, results and limitations
+- [Review findings](docs/review.md) — confirmed defects, corrections and review limits
+- [Performance evidence](docs/performance.md) — measurements and reference-state checks
+
+- [Requirements matrix](docs/requirements.md) — 151 vision requirements, evidence, and remaining gaps
+- [Owner questions](questions.md) — measurements and preferences that can be answered later
+
 - [`docs/physics.md`](docs/physics.md) — equations, discretisation, controller, metrics and their limits
 - [`docs/validation.md`](docs/validation.md) — measured verification, refinement, sensitivity, performance, 3D CPU and GPU results
 - [`docs/architecture.md`](docs/architecture.md) — C4 diagrams and runtime flowcharts
@@ -94,14 +111,19 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 
 ## How it was built
 
-| Area                 | What is used                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Physics              | 2D incompressible Navier–Stokes with a free surface: hybrid particle/grid **PIC/FLIP** (optional **APIC**) on a staggered MAC grid, **PCG pressure solver with MIC(0)** preconditioning, moving-wall boundary fluxes, analytic signed-distance vessel geometry, Boussinesq buoyancy for the thermal mode (verified against the de Vahl Davis heated cavity), an offline 3D reference solver — all written from the published algorithms, no simulation library |
-| Language and runtime | **TypeScript** (strict), plain DOM, **Canvas 2D** rendering, **three.js** (WebGL) for the recorded 3D view, a dedicated **Web Worker** for the solver, **Web Audio API** for the generated soundscape — no UI framework, no runtime dependencies                                                                                                                                                                                                               |
-| Build and hosting    | **Vite** static build, **GitHub Pages**, **GitHub Actions**                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Quality              | **Vitest** with V8 coverage (≥ 95 %), **happy-dom** for UI integration tests, **Playwright** end-to-end tests in Chromium and Firefox, **ESLint** (typescript-eslint), **Prettier**, one `localPipeline.sh` shared by developers and CI                                                                                                                                                                                                                        |
-| Media and analysis   | **ffmpeg** for the GIFs (rendered deterministically from the real app), benchmark/profiling scripts in `benchmarks/`, a colour-vision-deficiency palette validator for the layer colours                                                                                                                                                                                                                                                                       |
-| AI                   | Designed from the written specification in [`docs/vision.md`](docs/vision.md) and implemented with **Claude Code** (Anthropic, model **Claude Opus 5.5**): plan, code, tests, reviews and docs, with every commit verified by the full pipeline before it was pushed                                                                                                                                                                                           |
+| Area               | Implementation                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| Physics            | PIC/FLIP or MAC-APIC, a MAC grid, MIC(0)-PCG pressure, moving-wall fluxes and exact wall collisions. |
+| Thermal model      | Temperature transport, diffusion and optional Boussinesq buoyancy.                                   |
+| Browser            | TypeScript, plain DOM, Canvas 2D and a dedicated simulation worker.                                  |
+| 3D                 | An offline CPU reference and an optional live WebGPU solver. Three.js renders both modes with WebGL. |
+| Sound              | Generated Web Audio, off until enabled.                                                              |
+| Delivery           | Vite, GitHub Actions and GitHub Pages.                                                               |
+| Verification       | Vitest, coverage checks, Playwright in Chromium and Firefox, lint and type checks.                   |
+| Runtime dependency | Three.js. Its MIT licence ships with the site.                                                       |
+
+The original implementation was built with Claude Code from the written vision.
+This review adds correctness fixes, interface improvements, profiling and requirements traceability.
 
 ## License
 

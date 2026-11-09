@@ -161,7 +161,7 @@ sequenceDiagram
 ## Live 3D run (WebGPU)
 
 The live mode (`src/view3d/live.ts`, `src/gpu3d/solver.ts`) runs the same substep as the 3D reference on the
-GPU. One substep is one command buffer. The CPU reads back only a 64-byte stats block, which it needs for the
+GPU. One substep is one command buffer. For stepping, the CPU reads back a 64-byte stats block. It needs this block for the
 next stable substep and for the pour controller. That readback is pipelined one substep behind.
 
 ```mermaid
@@ -187,6 +187,20 @@ sequenceDiagram
 
 The parcels are drawn with WebGL, not straight from the solver's buffer. On hybrid-GPU laptops,
 Chromium cannot present a WebGPU canvas from the discrete GPU (see `docs/validation.md`).
+
+## Resource ownership and rendering cost
+
+The 2D worker owns parcel state. Snapshot arrays are copied before transfer; the sender never detaches solver arrays.
+The interface allows one outstanding frame request. Timeline storage includes positions, statuses, speed and optional temperature.
+
+The initial-position map is cached by experiment, status values and theme.
+Position changes alone cannot change that map. A changed status or theme invalidates it.
+Opaque consecutive parcel colours share a canvas path. Translucent colours, glow and shape markers retain individual drawing.
+Painter order and origin labels remain unchanged.
+
+A 3D viewer owns its scene geometry, materials and controls.
+The live loader also owns its GPU device. Disposal releases these resources before a replacement run starts.
+Startup is serialized. Failed live work stops playback and reports a message.
 
 ## Delivery pipeline
 

@@ -138,3 +138,24 @@ test('step, scrub, exports and view toggles work', async ({ page }) => {
   const [png] = await Promise.all([page.waitForEvent('download'), page.locator('#expPng').click()]);
   expect(png.suggestedFilename()).toBe('pourlab-view.png');
 });
+
+test('phone-width editor supports keyboard and point buttons without horizontal overflow', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 780 });
+  await page.goto('./');
+  await expect(page.locator('#status')).toContainText('Ready');
+  await page.locator('#shapeBox > summary').click();
+  await page.locator('#shape-jug').click();
+  await page.locator('#shapeNext').click();
+  await expect(page.locator('#shapePoint')).toContainText('Point 1');
+  await expect(page.locator('#shapeCanvas')).toBeFocused();
+  const position = await page.locator('#shapePoint').textContent();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('#shapePoint')).not.toHaveText(position!);
+  await page.locator('#shapeAdd').click();
+  await expect(page.locator('#shapePoint')).toContainText('Point 2');
+  await page.locator('#shapeRemove').click();
+  await expect(page.locator('#shapeUse')).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

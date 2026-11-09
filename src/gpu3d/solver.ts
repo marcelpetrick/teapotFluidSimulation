@@ -3,7 +3,7 @@
 //
 // Host side of the WebGPU 3D solver. The initial state (grid, pivot, seeded parcels, layer labels)
 // comes from the CPU reference constructor, so both solvers start bit-identical. Each substep is
-// one command buffer; the only readback is a 64-byte stats block (counts, max speed, divergence),
+// one command buffer; stepping reads back a 64-byte stats block (counts, max speed, divergence),
 // which the CPU needs for the next stable substep and for the target-volume pour controller.
 
 import { PourController } from '../sim/motion';
@@ -405,7 +405,7 @@ export class GpuSimulation3D {
     return total > 0 ? c.map((k) => k / total) : null;
   }
 
-  /** Read parcel state back (verification only; rendering never reads back). */
+  /** Read full parcel state for verification; the viewer reads render positions separately. */
   async readParticles(): Promise<{ pos: Float32Array; vel: Float32Array; status: Uint32Array }> {
     const { device, buffers: B, n } = this;
     const P = this.layout.params;

@@ -14,8 +14,8 @@ on:
 permissions:
   contents: read
 
-# A newer push waits for the running pipeline instead of cancelling it, so every
-# green main run reaches the Pages deployment.
+# Keep a running pipeline alive when a newer push arrives.
+# The newest pending revision can deploy after that run finishes.
 concurrency:
   group: pipeline-${{ github.ref }}
   cancel-in-progress: false

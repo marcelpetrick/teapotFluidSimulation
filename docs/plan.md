@@ -3,6 +3,11 @@
 Source of truth: [`vision.md`](vision.md). This plan maps the vision to verifiable work and records
 status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 
+Current evidence: [requirements matrix](requirements.md).
+Owner-dependent inputs: [questions](../questions.md).
+The represented-volume drift gate remains unmet; see [validation](validation.md).
+A completed implementation phase does not establish physical validation.
+
 ## Decisions
 
 - **Stack:** TypeScript, Vite, dedicated module Web Worker, Canvas 2D, no UI framework (vision §6, §18.5).
@@ -56,6 +61,15 @@ status. `[x]` done and verified (test, benchmark or e2e named), `[ ]` open.
 - [x] End-to-end runs of the nine most common configurations in Chromium and Firefox, checked physically
 
 - [x] Faster solver evaluated: multigrid PCG implemented and measured, not faster than MIC(0) at these sizes (kept optional) — `benchmarks/mg.ts`
+
+### Review and performance pass
+
+- [x] Correct viewer lifetimes, startup races, timeline scalar data and overlapping exports — regression tests.
+- [x] Improve the wall appearance, shape editor, touch targets and phone-width layout.
+- [x] Profile default and maximum parcel rendering; preserve exact reference-pour state during collision acceleration.
+- [x] Trace 151 vision requirements and check matrix structure in the pipeline.
+- [x] Correct unsupported validation and runtime-dependency claims; provide short operating instructions.
+- [ ] Physical validation and real-phone performance — owner inputs remain in `questions.md`.
 
 ### Product extras (owner requests)
 

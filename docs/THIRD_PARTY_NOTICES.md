@@ -1,12 +1,22 @@
 # Third-party notices
 
-PourLab's simulation, rendering and UI code is original work under GPL-3.0-or-later.
+PourLab’s own simulation, rendering and interface code uses GPL-3.0-or-later.
 
-- **No third-party source code is incorporated.** The solver was written from the published algorithm
-  descriptions (Bridson & Müller-Fischer 2007 course notes; Jiang et al. 2015 and Ding et al. 2020 for
-  APIC). The Ten Minute Physics FLIP demo (MIT) was considered as a reference in the vision but no code
-  from it was copied, so no MIT notice is required for it.
-- **Build- and test-time tools** (not shipped in `dist/`): TypeScript, Vite, Vitest, ESLint,
-  typescript-eslint, Prettier, Playwright, happy-dom, tsx — each under its own licence (MIT or
-  Apache-2.0), installed from npm at the exact versions in `package-lock.json`.
-- The production bundle contains only PourLab code; it has no runtime dependencies.
+The solver implements published algorithms. No source was copied from the Ten Minute Physics demo.
+There is therefore no incorporated demo revision to pin.
+See [sources](sources.md) for the algorithm references.
+
+## Shipped runtime dependency
+
+The lazy 3D bundle contains **three.js** and its OrbitControls module.
+These use the MIT licence. The copyright notice and full licence are distributed with the site:
+[three.js licence](../public/THREE-LICENSE.txt).
+
+The 2D baseline does not load three.js. It uses the project’s Canvas renderer and worker solver.
+The production application has one declared runtime dependency: three.js.
+
+## Development dependencies
+
+TypeScript, Vite, Vitest, ESLint, typescript-eslint, Prettier, Playwright, happy-dom and tsx support development and tests.
+Their versions and licences are recorded by npm in `package-lock.json` and the installed packages.
+They are not application runtime dependencies.

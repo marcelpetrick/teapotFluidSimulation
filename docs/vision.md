@@ -1,5 +1,8 @@
 # PourLab: where does poured tea come from?
 
+> Historical specification, written before implementation. Its unchecked tasks are preserved.
+> See [requirements](requirements.md) for current evidence and [plan](plan.md) for delivery status.
+
 ## 1. Purpose and handoff
 
 Build an interactive browser experiment that answers a surprisingly difficult everyday question: **when we pour tea, which parts of the liquid leave, which parts replace them, and how much does pouring mix what remains?**

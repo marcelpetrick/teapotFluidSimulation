@@ -31,13 +31,18 @@ Chromium 158, Firefox 159.
 
 ## Engineering gates (vision §11)
 
-| Gate                     | Target                                                     | Measured                                                                                      | Status |
-| ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------ |
-| Represented-volume drift | < 1 % (short runs)                                         | interior parcel density 1.000 ± 0.001 with density correction (1.07 without)                  | pass   |
-| Pour accuracy            | within 5 % of 400 mL                                       | 399.6 (gentle), 403.0 (fast), 400.5 (slow), 401.1 (pitcher), 397.1 (glass), 400.7 (repeat) mL | pass   |
-| Refinement               | finest two resolutions within 5 points per origin fraction | 64 vs 96 cells: max difference 1.4 points                                                     | pass   |
-| Browser frame rate       | ≥ 30 rendered fps with responsive controls                 | 60 fps animation; 45 (Chromium) / 47 (Firefox) fresh simulation frames per second             | pass   |
-| Firefox and Chrome       | same preset completes and exports a valid record           | e2e in both, JSON record parsed                                                               | pass   |
+| Gate                     | Target                                                     | Measured                                                                                      | Status  |
+| ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- |
+| Represented-volume drift | < 1 % (short runs)                                         | Recorded fast pour: −5.14 %; gentle reference: see raw `representedDrift`                     | NOT MET |
+| Pour accuracy            | within 5 % of 400 mL                                       | 399.6 (gentle), 403.0 (fast), 400.5 (slow), 401.1 (pitcher), 397.1 (glass), 400.7 (repeat) mL | pass    |
+| Refinement               | finest two resolutions within 5 points per origin fraction | 64 vs 96 cells: max difference 1.4 points                                                     | pass    |
+| Browser frame rate       | ≥ 30 rendered fps with responsive controls                 | 60 fps animation; 45 (Chromium) / 47 (Firefox) fresh simulation frames per second             | pass    |
+| Firefox and Chrome       | same preset completes and exports a valid record           | e2e in both, JSON record parsed                                                               | pass    |
+
+The represented-volume gate is **not met**. Interior parcel density measures local compression;
+it does not measure the occupied-area drift reported by `representedDrift`.
+The parcel ledger can close while the occupied area changes. Treat pouring results as exploratory.
+The earlier pass claim used the wrong metric and is withdrawn.
 
 ## Thermal benchmark: differentially heated cavity (`benchmarks/cavity.ts`)
 

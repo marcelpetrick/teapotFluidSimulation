@@ -117,6 +117,9 @@
 
       <aside class="results" aria-label="Results">
         <h2>Answer so far</h2>
+        <p class="hint">
+          Exploratory 2D model. Volumes are 2D-equivalent. <a href="#limits">Model limits</a>.
+        </p>
         <ul id="summary" class="summary"></ul>
         <div class="next" role="group" aria-label="Comparisons">
           <button id="cmpStill" type="button">Compare with no pour</button>
@@ -328,7 +331,10 @@
       </div>
     </section>
     <footer class="foot">
-      <p>PourLab is free software under the GNU GPL v3 or later. 2D qualitative model: see Model limits.</p>
+      <p>
+        PourLab is free software under the GNU GPL v3 or later. 2D qualitative model: see Model limits. The 3D
+        view uses <a href="./THREE-LICENSE.txt">three.js under the MIT licence</a>.
+      </p>
     </footer>
     <div id="tooltip" class="tooltip" hidden></div>
     <script type="module" src="./src/main.ts"></script>
