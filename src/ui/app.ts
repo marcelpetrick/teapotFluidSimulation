@@ -278,6 +278,7 @@ export class App {
       ['pitcher', 'Pitcher (rim lip)'],
       ['tank', 'Open tank (test)'],
       ['custom', 'Drawn pot (shape editor)'],
+      ['cavity', 'Heated cavity (thermal test)'],
     ]);
     this.selectField(f, 'control', 'Pouring', [
       ['auto', 'Automatic pour to the target'],

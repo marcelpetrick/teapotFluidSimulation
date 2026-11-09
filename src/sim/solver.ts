@@ -735,8 +735,13 @@ export class Simulation {
       f.set(tmp);
     };
     // Rigid wall velocity components (zero for the static domain border and a resting vessel).
-    lap(this.u, this.uTmp, um, this.uSolid, nx + 1, ny, false, (_i, j) => -om * ((j + 0.5) * h - pose.pwy));
-    lap(this.v, this.vTmp, vm, this.vSolid, nx, ny + 1, true, (i) => om * ((i + 0.5) * h - pose.pwx));
+    // Faces next to the static domain border (outermost cell rows/columns) have zero wall velocity.
+    lap(this.u, this.uTmp, um, this.uSolid, nx + 1, ny, false, (_i, j) =>
+      j <= 0 || j >= ny - 1 ? 0 : -om * ((j + 0.5) * h - pose.pwy),
+    );
+    lap(this.v, this.vTmp, vm, this.vSolid, nx, ny + 1, true, (i) =>
+      i <= 0 || i >= nx - 1 ? 0 : om * ((i + 0.5) * h - pose.pwx),
+    );
   }
 
   /** Solid faces carry the normal component of the rigid wall velocity omega x (x - pivot). */

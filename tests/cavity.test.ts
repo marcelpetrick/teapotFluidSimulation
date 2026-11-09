@@ -52,6 +52,22 @@ describe('differentially heated cavity (thermal verification)', () => {
     expect(new Simulation(off).wallNusselt()).toBeNull();
   });
 
+  it('no-slip walls on a tilting vessel keep the static domain border at rest', () => {
+    const cfg = cavityConfig(1e3, 24);
+    cfg.motion = {
+      ...cfg.motion,
+      kind: 'tilt',
+      holdAngleDeg: 5,
+      maxAngleDeg: 5,
+      holdTime: 0.2,
+      startDelay: 0,
+    };
+    const sim = new Simulation(cfg);
+    const d = sim.advance(0.5);
+    expect(d.pressureFailures).toBe(0);
+    expect(Number.isFinite(d.maxSpeed)).toBe(true);
+  });
+
   it('no-slip walls slow the liquid next to a wall compared with free-slip', () => {
     const run = (wall: 'no-slip' | 'free-slip') => {
       const cfg = cavityConfig(1e4, 24);

@@ -69,7 +69,7 @@ export const CONTROL_HELP: Record<string, string> = {
 /** Help for settings fields, by setting key. */
 export const SETTING_HELP: Record<string, string> = {
   vessel:
-    'Pot model. Teapot: low inlet and spout. German glass teapot: wide glass cylinder with a lip at the top, so it pours from the surface. Pitcher: rim lip. Drawn pot: your own shape from the editor.',
+    'Pot model. Teapot: low inlet and spout. German glass teapot: wide glass cylinder with a lip at the top, so it pours from the surface. Pitcher: rim lip. Drawn pot: your own shape from the editor. Heated cavity: closed box for the thermal benchmark.',
   control:
     'Automatic: the pot tilts and returns by itself near the target. Tilt by hand: you control the angle with the slider.',
   fillMl:

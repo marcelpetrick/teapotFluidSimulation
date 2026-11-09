@@ -214,6 +214,12 @@ describe('App (integration with the real simulation host)', () => {
     expect($('errors').textContent).toBe('');
     expect(t.replaced.at(-1)).toMatch(/seed=5/);
     const preset = $('preset') as HTMLSelectElement;
+    // The thermal benchmark preset keeps its vessel in the form (the select knows 'cavity').
+    preset.value = 'thermal-cavity';
+    preset.dispatchEvent(new Event('change'));
+    await t.settle();
+    expect(($('set-vessel') as HTMLSelectElement).value).toBe('cavity');
+    expect(t.app.readForm().vessel).toBe('cavity');
     preset.value = 'teapot-still';
     preset.dispatchEvent(new Event('change'));
     await t.settle();
