@@ -32,6 +32,11 @@ Architecture: [`docs/architecture.md`](docs/architecture.md).
 - Performance changes must keep the reference pour bit-for-bit identical, or be justified, re-calibrated
   (`scripts/calibrate-anticipation.ts`) and documented in `docs/validation.md`.
 - Show model limits beside results; label 2D-equivalent volumes.
+- The browser 3D view is a **recording** of the offline CPU solver, which runs about 60× slower than real
+  time. Always label it as a recording; never present it as live.
+- A real-time WebGPU 3D solver is planned (`docs/plan.md`, phase F). When it is built, it must reproduce
+  the CPU 3D results within the stated tolerances before it replaces or sits beside the recording.
+  Without WebGPU, the page falls back to the recording.
 
 ## Layout
 

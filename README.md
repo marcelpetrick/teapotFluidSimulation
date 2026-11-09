@@ -26,9 +26,25 @@ colour of the layer it started in.
 ![3D reference: cylindrical teapot with a round spout](media/pourlab-v0.9.0-3d-teapot.gif)
 
 An offline 3D reference (cylindrical 1.5 L teapot, real round 2 cm spout) gives **29 % bottom, 51 %
-middle, 20 % top** for the same pour — within about 3 points of the 2D model. On the live page, **Open 3D
-view** plays this recorded 3D pour, and you can rotate, zoom and pan freely while it pours. The thermal mode is checked
+middle, 20 % top** for the same pour — within about 3 points of the 2D model. The thermal mode is checked
 against the standard heated-cavity benchmark. Details: [`docs/validation.md`](docs/validation.md).
+
+**The 3D view on the live page is a recording, not a live simulation.** **Open 3D view** plays back the
+output of the offline 3D solver. You can rotate, zoom and pan freely while it pours, but you cannot change
+its parameters. The reason is speed: the 3D solver runs on the CPU, and computing one pour takes far too
+long to watch live.
+
+| Run                                     | Simulated pour | Compute time (one CPU core) | Compared with real time |
+| --------------------------------------- | -------------- | --------------------------- | ----------------------- |
+| 3D, 5 mm cells, 45 k parcels (half pot) | 11.5 s         | 684 s (≈ 11 min)            | ~60× slower             |
+| 3D, 4 mm cells, 89 k parcels (half pot) | 11.5 s         | 1 636 s (≈ 27 min)          | ~140× slower            |
+| 2D default (live in the browser)        | —              | —                           | 1.2× faster             |
+
+Most of the cost is the 3D pressure solve on a 66×66×18 grid, which has about 40× the cells of the 2D
+grid, at every substep. A coarser grid would not be fast enough either, and it would leave the 2 cm
+spout only 2–3 cells wide, too coarse to trust the layer shares. So the pour is computed once offline
+(`scripts/record3d.ts`, numbers in [`benchmarks/run3d.json`](benchmarks/run3d.json)) and replayed at
+60 fps. A real-time 3D solver on the GPU (WebGPU) is planned: see [`docs/plan.md`](docs/plan.md).
 
 ## What you can do
 
