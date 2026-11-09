@@ -1,0 +1,48 @@
+{
+ "generatedAt": "2026-11-09T12:41:45.275Z",
+ "scenario": "gentle 400 mL pour, 3D cylindrical teapot with a 2 cm round spout (half pot simulated by symmetry)",
+ "rows": [
+  {
+   "cellMm": 5,
+   "parcelsHalfPot": 44958,
+   "grid": [
+    66,
+    66,
+    18
+   ],
+   "simulatedSeconds": 11.547468892151917,
+   "dischargedMl": 406.7796610169492,
+   "spilledMl": 0,
+   "lostMl": 0,
+   "dischargedFractions": [
+    0.2770669291338583,
+    0.5194389763779528,
+    0.20349409448818898
+   ],
+   "pressureFailures": 0,
+   "interiorDensity": 0.9995362098013886,
+   "wallSeconds": 683.50239039
+  },
+  {
+   "cellMm": 4,
+   "parcelsHalfPot": 88856,
+   "grid": [
+    81,
+    81,
+    22
+   ],
+   "simulatedSeconds": 11.543841673447004,
+   "dischargedMl": 410.53502295849466,
+   "spilledMl": 0,
+   "lostMl": 0,
+   "dischargedFractions": [
+    0.2921995147826802,
+    0.5096426662280521,
+    0.19815781898926765
+   ],
+   "pressureFailures": 0,
+   "interiorDensity": 1.0000192532396146,
+   "wallSeconds": 1636.373419337
+  }
+ ]
+}

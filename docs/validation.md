@@ -61,6 +61,27 @@ precondition for interpreting tea thermal experiments (§11) is met for laminar 
 Rayleigh numbers; real tea-pot convection (Ra ≫ 10⁸) remains beyond a 2D model. A fast version
 (Ra = 10³, 24 cells, within 10 %) runs in the unit tests on every commit.
 
+## 3D reference (`src/sim3d/`, `benchmarks/run3d.ts`)
+
+Offline 3D PIC/FLIP solver (same method family as 2D: MAC grid, MIC(0)-PCG, moving-wall fluxes,
+position-only density correction, lip-section accounting) with a **cylindrical teapot** (inner radius
+6.5 cm, 1.5 L fill 11.3 cm deep) and a **round 2 cm spout** at 45° with its inlet 3.5 cm above the floor.
+The pot and tilt are mirror-symmetric, so one half is simulated behind a free-slip symmetry plane. Same
+pour motion and controller as the 2D gentle pour (anticipation not re-calibrated for 3D).
+
+| Model | Cells    | Parcels     | Poured   | Bottom / middle / top | Spilled / lost |
+| ----- | -------- | ----------- | -------- | --------------------- | -------------- |
+| 3D    | 5 mm     | 45 k (half) | 406.8 mL | 27.7 / 51.9 / 20.3 %  | 0 / 0          |
+| 3D    | 4 mm     | 89 k (half) | 410.5 mL | 29.2 / 51.0 / 19.8 %  | 0 / 0          |
+| 2D    | 64 cells | 11 k        | 401.9 mL | 27.0 / 50.7 / 22.3 %  | 0 / 0          |
+| 2D    | 96 cells | 25 k        | 417.6 mL | 27.4 / 49.3 / 23.3 %  | 0 / 0          |
+
+Reading: the two 3D resolutions agree within 1.5 points per layer, and **3D agrees with 2D within about
+3 points**. For a low-inlet spout teapot the 2D answer survives the step to 3D: about half of the poured
+tea comes from the middle third, a little more from the bottom third than from the top. Limits: no surface tension or wetting, free-slip walls, coarse
+spout resolution (4–5 cells across the bore), no physical validation; `scripts/render3d.ts` renders a
+labelled playback GIF of the run.
+
 ## End-to-end configuration checks (`e2e/configurations.spec.ts`, every CI run)
 
 Each common configuration runs to completion in the real browsers (production build, worker) and must
@@ -143,6 +164,6 @@ results. The next real step would be a multigrid pressure solver or a WebAssembl
 ## Not done (needs the owner or a later version)
 
 - Physical experiments (dyed cold-water pours, collected mass, filmed tilt) and comparison.
-- A converged 3D reference simulation; the 2D slice cannot represent flow around the pot's sides.
+- A finer 3D study (more than 5 cells across the spout bore) and a 3D thermal model.
 - Thermal validation against measured cooling of a real pot (the convection benchmark above verifies the
   implementation, not the tea).
