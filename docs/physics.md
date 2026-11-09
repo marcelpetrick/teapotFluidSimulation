@@ -111,3 +111,19 @@ use the preset's anticipation and may miss the target: that miss is reported, no
 - Survivor cohort: the parcels in the pot at the time of evaluation, compared at their initial and
   current positions with the same bins and cohort composition; this separates selective removal from
   rearrangement.
+
+## 3D solvers (`src/sim3d/`, `src/gpu3d/`)
+
+The 3D reference uses the same equations and substep in three dimensions (half pot behind a free-slip
+symmetry plane, MIC(0)-PCG, no explicit viscosity). The WebGPU port solves the same discrete problem with
+other numerics:
+
+- f32 instead of f64 arithmetic;
+- parcel-to-grid sums as fixed-point integer atomics (velocity × weight scaled by 2²⁰, weights by 2²⁴),
+  so the result does not depend on thread order;
+- pressure and density-correction solves by CG with a degree-6 Chebyshev polynomial preconditioner for
+  D⁻¹A on [0.05, 2], in one workgroup, with the CPU's stopping rule (max residual ≤ tol · max |b|);
+- the stable substep and the pour controller use stats one substep older than on the CPU (pipelined
+  readback).
+
+None of these change the physics. The measured agreement with the CPU solver is in `docs/validation.md`.

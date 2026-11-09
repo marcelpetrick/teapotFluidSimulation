@@ -222,5 +222,8 @@ WebAssembly or WebGPU backend is not justified by the profile; the 3D model got 
 
 - Physical experiments (dyed cold-water pours, collected mass, filmed tilt) and comparison.
 - A finer 3D study (more than 5 cells across the spout bore) and a 3D thermal model.
+- Real-time live 3D at 4 mm cells (0.87× on the reference laptop): this needs a multi-workgroup GPU
+  pressure solver.
+- Live 3D speed on other GPUs and browsers, and on a real phone, has not been measured.
 - Thermal validation against measured cooling of a real pot (the convection benchmark above verifies the
   implementation, not the tea).

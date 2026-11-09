@@ -59,6 +59,9 @@ time goes into the two pressure solves per substep.
 - Switch the **look** between a clean lab view and **cyber neon** (glass panels, glowing liquid).
 - Turn on **sound**: a generated space ambience plus a pouring sound that follows the flow.
 - **Share** a link that reproduces the exact experiment; export **JSON**, **CSV** and **PNG**.
+- See the pour in **3D**: play the recorded reference, or **run it live on your GPU** (WebGPU) and tilt
+  the pot yourself. The [GPU check page](https://marcelpetrick.github.io/teapotFluidSimulation/verify-gpu.html)
+  compares the GPU solver with the CPU reference on your machine.
 
 Every control has a tooltip that explains what it does. Model limits are always shown next to the
 results: this is a qualitative 2D model, not a calibrated digital twin of your teapot.
@@ -83,7 +86,7 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 ## Documentation
 
 - [`docs/physics.md`](docs/physics.md) — equations, discretisation, controller, metrics and their limits
-- [`docs/validation.md`](docs/validation.md) — measured verification, refinement, sensitivity and performance
+- [`docs/validation.md`](docs/validation.md) — measured verification, refinement, sensitivity, performance, 3D CPU and GPU results
 - [`docs/architecture.md`](docs/architecture.md) — C4 diagrams and runtime flowcharts
 - [`docs/sources.md`](docs/sources.md) — literature used
 - [`scripts/README.md`](scripts/README.md) — helper scripts (verified commits, GIF rendering, calibration, …)

@@ -158,6 +158,36 @@ sequenceDiagram
   end
 ```
 
+## Live 3D run (WebGPU)
+
+The live mode (`src/view3d/live.ts`, `src/gpu3d/solver.ts`) runs the same substep as the 3D reference on the
+GPU. One substep is one command buffer. The CPU reads back only a 64-byte stats block, which it needs for the
+next stable substep and for the pour controller. That readback is pipelined one substep behind.
+
+```mermaid
+sequenceDiagram
+  participant R as requestAnimationFrame
+  participant V as LivePourViewer (main thread)
+  participant S as GpuSimulation3D
+  participant G as GPU (WebGPU queue)
+  loop every display frame
+    R->>V: tick(dt): goal clock += dt x speed (at most 0.25 s ahead)
+    V->>S: readRenderPositions() (one request at a time)
+    S->>G: write positions + mirror image, copy (about 1 MB)
+    G-->>V: positions into the WebGL point cloud
+    V->>V: tilt the pot, render with WebGL, update the info line
+  end
+  loop while simulated time < goal clock
+    V->>S: step()
+    S->>S: dt from stats of the substep before last, controller.advance
+    S->>G: params, then classify, compact liquid cells, P2G (fixed-point atomics),<br/>gravity and wall faces, PCG, gradient, extrapolate, G2P,<br/>density correction PCG, advect + discharge, copy stats
+    G-->>S: stats of the previous substep (counts, max speed, divergence)
+  end
+```
+
+The parcels are drawn with WebGL, not straight from the solver's buffer. On hybrid-GPU laptops,
+Chromium cannot present a WebGPU canvas from the discrete GPU (see `docs/validation.md`).
+
 ## Delivery pipeline
 
 ```mermaid
