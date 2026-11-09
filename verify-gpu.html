@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Marcel Petrick -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="PourLab: check the WebGPU 3D solver against the CPU reference on your GPU."
+    />
+    <title>PourLab GPU check</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main class="gpu-check">
+      <h1>PourLab GPU check</h1>
+      <p>
+        Runs the WebGPU 3D solver on your GPU next to the CPU reference solver and compares them. Nothing is
+        sent anywhere. <a href="./">Back to PourLab</a>
+      </p>
+      <p id="adapter">Looking for a WebGPU adapter...</p>
+      <p>
+        <button
+          id="compare"
+          type="button"
+          title="Run both solvers for 40 substeps from the same state at 10 mm cells and compare every parcel"
+          disabled
+        >
+          Compare 40 substeps (10 mm)
+        </button>
+        <button
+          id="pour"
+          type="button"
+          title="Run the whole gentle 400 mL pour at 5 mm cells on the GPU and compare with the recorded CPU result"
+          disabled
+        >
+          Run the 5 mm pour
+        </button>
+      </p>
+      <pre id="out" aria-live="polite"></pre>
+    </main>
+    <script type="module" src="./src/gpu3d/page.ts"></script>
+  </body>
+</html>

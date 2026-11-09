@@ -1,0 +1,139 @@
+{
+ "generatedAt": "2026-11-09T21:13:06.113Z",
+ "browser": "chromium 158.0.8127.18",
+ "adapter": "WebGPU adapter: nvidia ampere",
+ "criteria": "poured volume within 1 %, layer shares within 2 points, no lost parcels (docs/plan.md, phase F)",
+ "stepComparison": {
+  "steps": 200,
+  "simulatedSeconds": 0.907343814820734,
+  "parcels": 44958,
+  "rmsPositionCells": 0.01260374232119145,
+  "maxPositionCells": 0.3100146151501806,
+  "relativeVelocityRms": 0.0757232937488978,
+  "statusMismatches": 0,
+  "cpu": {
+   "time": 0.907343814820734,
+   "steps": 200,
+   "angleDeg": 2.1759887652483085,
+   "phase": "tilt-in",
+   "particles": 44958,
+   "grid": [
+    66,
+    66,
+    18
+   ],
+   "dischargedMl": 0,
+   "spilledMl": 0,
+   "lostMl": 0,
+   "inPotMl": 1500,
+   "pressureIterations": 32,
+   "pressureFailures": 0,
+   "maxDivergence": 0.000010868756033849056,
+   "interiorDensity": 0.999777765394405
+  },
+  "gpu": {
+   "time": 0.907343814820734,
+   "steps": 200,
+   "angleDeg": 2.1759887652483085,
+   "phase": "tilt-in",
+   "particles": 44958,
+   "grid": [
+    66,
+    66,
+    18
+   ],
+   "dischargedMl": 0,
+   "spilledMl": 0,
+   "lostMl": 0,
+   "inPotMl": 1500,
+   "pressureIterations": 27,
+   "pressureFailures": 0,
+   "maxDivergence": 0.00039902515709400177,
+   "interiorDensity": 0.9997681138582665
+  }
+ },
+ "rows": [
+  {
+   "cellMm": 5,
+   "parcelsHalfPot": 44958,
+   "grid": [
+    66,
+    66,
+    18
+   ],
+   "simulatedSeconds": 11.53815909833029,
+   "steps": 2853,
+   "dischargedMl": 406.4126518083545,
+   "spilledMl": 0.033364473508608036,
+   "lostMl": 0,
+   "dischargedFractions": [
+    0.27756341843855187,
+    0.5199901485920696,
+    0.20244643296937853
+   ],
+   "pressureFailures": 0,
+   "maxPressureIterations": 29,
+   "maxDivergence": 0.0008217990398406982,
+   "interiorDensity": 0.9996399240395457,
+   "wallSeconds": 9.715600000000093,
+   "realTimeFactor": 1.187590997810756,
+   "comparison": {
+    "cpuDischargedMl": 406.7796610169492,
+    "cpuFractions": [
+     0.2770669291338583,
+     0.5194389763779528,
+     0.20349409448818898
+    ],
+    "cpuRealTimeFactor": 0.016894555241515747,
+    "volumeDifferencePercent": -0.09022309711286594,
+    "shareDifferencePoints": [
+     0.049648930469359254,
+     0.055117221411682404,
+     -0.10476615188104443
+    ]
+   },
+   "pass": true
+  },
+  {
+   "cellMm": 4,
+   "parcelsHalfPot": 88856,
+   "grid": [
+    81,
+    81,
+    22
+   ],
+   "simulatedSeconds": 11.54412092768491,
+   "steps": 3333,
+   "dischargedMl": 409.7922481318088,
+   "spilledMl": 0,
+   "lostMl": 0,
+   "dischargedFractions": [
+    0.29235839340885683,
+    0.5102368692070031,
+    0.19740473738414005
+   ],
+   "pressureFailures": 0,
+   "maxPressureIterations": 36,
+   "maxDivergence": 0.0018440185813233256,
+   "interiorDensity": 0.9999095767911649,
+   "wallSeconds": 19.73,
+   "realTimeFactor": 0.5851049633900106,
+   "comparison": {
+    "cpuDischargedMl": 410.53502295849466,
+    "cpuFractions": [
+     0.2921995147826802,
+     0.5096426662280521,
+     0.19815781898926765
+    ],
+    "cpuRealTimeFactor": 0.0070545277361717075,
+    "volumeDifferencePercent": -0.18092849212550216,
+    "shareDifferencePoints": [
+     0.01588786261766395,
+     0.0594202978950964,
+     -0.07530816051276035
+    ]
+   },
+   "pass": true
+  }
+ ]
+}

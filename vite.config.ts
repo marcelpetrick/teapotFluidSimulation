@@ -10,7 +10,11 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   worker: { format: 'es' },
-  build: { target: 'es2022', sourcemap: true },
+  build: {
+    target: 'es2022',
+    sourcemap: true,
+    rolldownOptions: { input: { main: 'index.html', gpu: 'verify-gpu.html' } },
+  },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',

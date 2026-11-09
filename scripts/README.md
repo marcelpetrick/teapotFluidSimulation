@@ -32,6 +32,9 @@ More helpers:
 - `../benchmarks/run3d.ts` — offline 3D reference pour: `npx tsx benchmarks/run3d.ts 5 25` (about 12 min).
 - `record3d.ts` — records the 3D pour for the interactive browser 3D view (`public/data/pour3d.bin.gz`,
   quantised frame deltas, gzip): `npx tsx scripts/record3d.ts 5 3` (about 12 min).
+- `verify-gpu.ts` — the WebGPU 3D solver on this machine's GPU (headless Chromium, hardware adapter)
+  against the CPU reference: full pours plus a step comparison, with the phase F acceptance check:
+  `npm run build && npx tsx scripts/verify-gpu.ts 5 4 > benchmarks/gpu3d.json` (about 1 min).
 - `render3d.ts` — labelled 3D playback GIF of that run:
   `npx tsx scripts/render3d.ts media/pourlab-vX.Y.Z-3d-teapot.gif 5 14 cyber`.
 

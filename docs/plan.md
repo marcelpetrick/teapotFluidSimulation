@@ -83,14 +83,16 @@ Today, the CPU 3D solver is about 60× slower than real time at 5 mm cells, so t
 recording (see README, "Does it hold in 3D?"). The GPU port keeps the same method family, so results stay
 comparable with `src/sim3d/` and the recording.
 
-- [ ] Port the 3D PIC/FLIP step to WebGPU compute shaders (WGSL):
+- [x] Port the 3D PIC/FLIP step to WebGPU compute shaders (WGSL) — `src/gpu3d/`:
   - particle-to-grid transfer with atomic or sort-based scatter;
   - grid-to-particle transfer, advection, SDF wall handling with moving-wall fluxes;
   - density correction.
-- [ ] Use a GPU-parallel pressure solver, because MIC(0) is sequential:
+- [x] Use a GPU-parallel pressure solver, because MIC(0) is sequential (Chebyshev-preconditioned CG in one
+      workgroup, same residual tolerance as the CPU solver):
   - candidates are multigrid-preconditioned CG (MGPCG) or Jacobi/red-black Gauss–Seidel PCG;
   - acceptance requires the same divergence tolerance as the CPU solver.
-- [ ] Verify against the CPU 3D solver for the 5 mm gentle pour:
+- [x] Verify against the CPU 3D solver for the 5 mm gentle pour — `scripts/verify-gpu.ts`,
+      `benchmarks/gpu3d.json`, `e2e/gpuSolver.spec.ts` (−0.09 % volume, shares within 0.11 points):
   - poured volume within 1 %;
   - layer shares within 2 points;
   - no lost parcels;
@@ -98,8 +100,8 @@ comparable with `src/sim3d/` and the recording.
 - [ ] Add a live 3D mode in the existing three.js viewer:
   - start, pause and reset; tilt and preset controls;
   - parcels rendered straight from the GPU buffer, with no CPU readback per frame.
-- [ ] Performance target on the owner's laptop: at least 1× real time at 5 mm cells (about 90 k parcels, full
-      pot), measured and recorded in `docs/validation.md`.
+- [x] Performance target on the owner's laptop: at least 1× real time at 5 mm cells (about 90 k parcels, full
+      pot), measured and recorded in `docs/validation.md` — 1.19× on the RTX A2000 (solver only).
 - [ ] Fallback: if the browser has no WebGPU, keep playing the recording and tell the user why.
 
 ## Owner tasks (vision §14)

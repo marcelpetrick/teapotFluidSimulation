@@ -56,6 +56,7 @@ C4Component
     Component(help, "Tooltips", "src/ui/help.ts", "What every control is and what it influences")
     Component(sound, "Soundscape", "src/audio/soundscape.ts", "Drones, space wind, shimmer, pour noise")
     Component(view3d, "3D playback viewer", "src/view3d/ (three.js, lazy chunk)", "Recorded 3D pour with orbit, zoom and pan")
+    Component(gpu3d, "WebGPU 3D solver", "src/gpu3d/ (WGSL compute)", "Live 3D PIC/FLIP on the GPU; verified against src/sim3d")
   }
   Container_Boundary(wk, "Worker") {
     Component(host, "SimulationHost", "src/worker/host.ts", "Command handling, time-budgeted pumping, metrics snapshots")
@@ -101,6 +102,9 @@ flowchart LR
   R2[scripts/render3d.ts: 3D playback GIF] --> S3
   R3[scripts/record3d.ts: recording for the browser 3D view] --> S3
   R3 --> D[(public/data/pour3d.bin.gz)]
+  R4[scripts/verify-gpu.ts: GPU vs CPU in headless Chromium] --> G[src/gpu3d WebGPU solver]
+  G -->|seeded from| S3
+  R4 --> J
   B1 --> J[(benchmarks/*.json)]
   B2 --> J
   B4 --> J

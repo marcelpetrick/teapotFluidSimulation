@@ -82,6 +82,42 @@ tea comes from the middle third, a little more from the bottom third than from t
 spout resolution (4–5 cells across the bore), no physical validation; `scripts/render3d.ts` renders a
 labelled playback GIF of the run.
 
+## WebGPU 3D solver (`src/gpu3d/`, `scripts/verify-gpu.ts`)
+
+A port of the 3D reference step to WGSL compute shaders (docs/plan.md, phase F). Same method and order
+of operations; differences: **f32** instead of f64, parcel-to-grid sums in **fixed-point integer atomics**
+(order-independent, so a run is deterministic on a given GPU), and the pressure solves use a
+**Chebyshev-polynomial-preconditioned CG** (degree 6 on [0.05, 2] for D⁻¹A) in a single workgroup instead
+of the sequential MIC(0)-PCG. Same stopping rule (max residual ≤ 10⁻⁶ · max |b|), same seeded start
+(the CPU constructor seeds both), same pour controller. Raw data:
+[`benchmarks/gpu3d.json`](../benchmarks/gpu3d.json). GPU: NVIDIA RTX A2000 Laptop (Ampere), Chromium 158,
+Vulkan.
+
+Full gentle pour against the CPU reference (acceptance: volume within 1 %, shares within 2 points, no
+lost parcels):
+
+| Cells | Poured (GPU / CPU) | Bottom / middle / top, GPU − CPU | Lost | Pressure failures | Speed           | vs CPU |
+| ----- | ------------------ | -------------------------------- | ---- | ----------------- | --------------- | ------ |
+| 5 mm  | 406.4 / 406.8 mL   | +0.05 / +0.06 / −0.10 points     | 0    | 0                 | 1.19× real time | 70×    |
+| 4 mm  | 409.8 / 410.5 mL   | +0.02 / +0.06 / −0.08 points     | 0    | 0                 | 0.59× real time | 83×    |
+
+Step by step from the identical state with the CPU's substeps: after 20 substeps at 10 mm parcel
+positions agree to about 10⁻⁵ cells RMS (2·10⁻⁴ max) and velocities to 3·10⁻⁵ relative, with no status
+mismatch (this runs in CI on the SwiftShader software adapter, `e2e/gpuSolver.spec.ts`). Over 200
+substeps (0.9 s) at 5 mm the f32 differences grow in the sloshing flow to 0.013 cells RMS (0.31 max),
+still with no status mismatch; the pour statistics above are what must agree, and they do.
+
+Measured divergence after projection is about 10⁻³ 1/s on the GPU against 10⁻⁵ 1/s on the CPU: the
+residual target is met, but f32 face velocities limit how small the recomputed divergence can be.
+Interior parcel density stays at 1.000 ± 0.001 as on the CPU.
+
+Speed: per 5 mm substep the GPU spends about 0.9 ms in the pressure solve, 0.7 ms in the
+density-correction solve and 0.45 ms in all other kernels; the rest is the per-substep readback of a
+64-byte stats block, which the CPU needs for the next stable substep and for the pour controller. Every
+pressure iteration in one workgroup is latency-bound (about 25 µs); a multi-workgroup solver is the next
+lever if finer cells must run in real time. Anyone can repeat the check on their own GPU on the
+[GPU check page](https://marcelpetrick.github.io/teapotFluidSimulation/verify-gpu.html).
+
 ## End-to-end configuration checks (`e2e/configurations.spec.ts`, every CI run)
 
 Each common configuration runs to completion in the real browsers (production build, worker) and must
@@ -163,8 +199,8 @@ and measured on the gentle pour: it cuts the pressure iterations (31 → 20 at 4
 68 → 31 at 128) but each V-cycle costs more than a MIC(0) application, so a step is slower (3.9 vs 5.5
 ms at 44, 24.9 vs 27.3 ms at 96, 48.1 vs 50.6 ms at 128 cells). The liquid occupies only a small,
 irregular part of the grid, where MIC(0) is already a strong, cheap preconditioner. MIC(0) therefore
-stays the default; multigrid is available as `pressurePreconditioner: 'multigrid'`. A WebAssembly or
-WebGPU backend is the remaining lever and is not yet justified by the profile.
+stays the default; multigrid is available as `pressurePreconditioner: 'multigrid'`. For the 2D model a
+WebAssembly or WebGPU backend is not justified by the profile; the 3D model got a WebGPU solver (above).
 
 ## Not done (needs the owner or a later version)
 
