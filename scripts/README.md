@@ -10,7 +10,7 @@ Small reusable helpers. All are run from the repository root.
 | `bump-version.sh`           | Bumps `package.json`/lockfile version without tagging. Patch for every commit, minor for major features. Prints the new version.                                            | `scripts/bump-version.sh patch\|minor\|major`                      |
 | `calibrate-anticipation.ts` | Bisects the pour controller's return anticipation for a preset so the automated pour lands near its target. The result goes into `src/sim/config.ts`. Never removes liquid. | `npx tsx scripts/calibrate-anticipation.ts <presetId> [quality]`   |
 | `serve-subpath.mjs`         | Static server for `dist/` under a sub-path, mimicking GitHub Pages; used by Playwright.                                                                                     | `node scripts/serve-subpath.mjs dist 4173 /teapotFluidSimulation/` |
-| `screenshot.ts`             | Captures the README screenshot (`docs/screenshot.png`) from the built site mid-pour with Playwright.                                                                        | `npm run build && npx tsx scripts/screenshot.ts`                   |
+| `screenshot.ts`             | Captures a full-page screenshot (default `docs/screenshot.png`; optional look and mode arguments) from the built site mid-pour with Playwright.                             | `npm run build && npx tsx scripts/screenshot.ts`                   |
 
 More helpers:
 

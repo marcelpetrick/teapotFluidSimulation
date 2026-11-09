@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Marcel Petrick
 //
-// Capture the README screenshot (docs/screenshot.png) from the production build mid-pour.
+// Capture a screenshot (default docs/screenshot.png) from the production build mid-pour.
 // Usage: npm run build && npx tsx scripts/screenshot.ts [outFile] [lab|cyber] [auto|light|dark]
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
