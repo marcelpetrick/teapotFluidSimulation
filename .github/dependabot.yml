@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Marcel Petrick
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Berlin
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build(deps)
+    # AGENTS.md: stay on TypeScript 6.0.x until typescript-eslint supports newer releases.
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
+    groups:
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      eslint:
+        patterns: ['eslint', '@eslint/*', 'typescript-eslint', '@typescript-eslint/*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci(deps)
