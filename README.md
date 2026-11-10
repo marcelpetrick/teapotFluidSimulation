@@ -14,20 +14,26 @@ colour of the layer it started in.
 
 **▶ Try it: <https://marcelpetrick.github.io/teapotFluidSimulation/>** — no install, no account.
 
-![Cyber look: German glass teapot pouring from its top layer](media/pourlab-v0.7.3-cyber-glass-teapot.gif)
+![Current 2D interface: glass teapot pouring, with immutable origin colours and accounting collector](media/pourlab-v0.13.8-cyber-glass-teapot.gif)
 
 | Teapot with a low spout                                                                                      | German glass teapot (lip at the top)                                       |
 | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| ![Spout teapot pouring](media/pourlab-v0.7.3-spout-teapot.gif)                                               | ![German glass teapot pouring](media/pourlab-v0.7.3-glass-teapot.gif)      |
+| ![Spout teapot pouring](media/pourlab-v0.13.8-spout-teapot.gif)                                              | ![German glass teapot pouring](media/pourlab-v0.13.8-glass-teapot.gif)     |
 | Liquid leaves through a low inlet: **25 % bottom, 52 % middle, 23 % top** layer, plus what sat in the spout. | Liquid can only leave over the rim: **0 % bottom, 39 % middle, 61 % top**. |
+
+Demos captured from **v0.13.8**. [Capture method and provenance](media/README.md).
+Prefer a still image? [Open the interface screenshot](docs/screenshot.png).
 
 ## Does it hold in 3D?
 
-![3D reference: cylindrical teapot with a round spout](media/pourlab-v0.9.0-3d-teapot.gif)
+![Current browser 3D viewer playing the offline CPU reference recording, with playback label and controls](media/pourlab-v0.13.8-3d-teapot.gif)
 
-An offline 3D reference (cylindrical 1.5 L teapot, real round 2 cm spout) gives **29 % bottom, 51 %
-middle, 20 % top** for the same pour — within about 3 points of the 2D model. The thermal mode is checked
-against the standard heated-cavity benchmark. Details: [`docs/validation.md`](docs/validation.md).
+The recording uses **5 mm cells** and ends at **407 mL: 28 % bottom, 52 % middle, 20 % top**.
+The finer **4 mm** offline reference ends at **411 mL: 29 % bottom, 51 % middle, 20 % top** — within
+about 3 points of the 2D model. Both use a cylindrical 1.5 L teapot with a round 2 cm spout and a
+400 mL target; these are numerical comparisons, not real-pot validation.
+[Raw 3D results](benchmarks/run3d.json) and [validation details](docs/validation.md) include the thermal
+mode’s heated-cavity benchmark.
 
 **The 3D view has two modes.** **Open 3D recording** plays back the offline CPU solver's output. **Run 3D
 live on your GPU** computes the same pour while you watch, with a WebGPU port of that solver. You can

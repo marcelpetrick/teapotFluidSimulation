@@ -25,8 +25,9 @@ More helpers:
 - `check-links.mjs` — fails if a relative link or image in any tracked Markdown file is broken (pipeline
   stage): `node scripts/check-links.mjs`.
 
-- `render-gif.ts` — renders a looping showcase GIF of a preset from the production build, frame by
-  frame with single simulation steps (deterministic), via ffmpeg:
+- `render-gif.ts` — renders a looping showcase GIF of a preset from the production build, at simulated-time targets with whole stable steps, via ffmpeg. Use `recording3d` instead of a preset
+  to capture the actual browser 3D recording viewer; `.gif.json` sidecars record provenance. See
+  [media method](../media/README.md):
   `npm run build && npx tsx scripts/render-gif.ts glass-gentle media/pourlab-vX.Y.Z-glass-teapot.gif 12`.
 - `measure-browser.ts` — frame rate and simulated-time throughput in headless Chromium and Firefox:
   `npm run build && npx tsx scripts/measure-browser.ts > benchmarks/browser.json`.
