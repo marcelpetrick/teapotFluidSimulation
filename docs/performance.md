@@ -1,5 +1,32 @@
 # Performance evidence
 
+## Follow-up: paced redraws exposed a hidden bottleneck
+
+The original synchronous test did not measure frame cadence.
+A paced test of v0.13.4 found about **10.9 redraw opportunities/s** at 180,035 parcels despite 11.6 ms CPU submission.
+The browser still had expensive raster work after submission.
+
+The new opaque origin renderer visits every parcel and writes a reusable pixel buffer.
+It composites that image over the vessel. It does not change positions, statuses, labels or solver resolution.
+Squares snap to canvas pixels, so their edge appearance can differ from the antialiased path renderer.
+Glow, transparency, shape markers and unsupported browsers retain the ordinary renderer.
+
+| Paced case                                    | Before redraw opportunities/s | After redraw opportunities/s | Before / after p95 frame interval |
+| --------------------------------------------- | ----------------------------: | ---------------------------: | --------------------------------: |
+| Desktop default, paused                       |                          60.0 |                         60.0 |                    16.7 / 16.8 ms |
+| Desktop maximum, paused                       |                          10.9 |                         60.0 |                   100.1 / 16.8 ms |
+| Desktop default, actively pouring             |                          60.0 |                         60.0 |                    16.7 / 16.8 ms |
+| Phone-sized viewport, 4× CPU slowdown, paused |                          60.0 |                         60.0 |                    16.7 / 16.7 ms |
+
+These are brief, sequential local samples: five warmup frames followed by thirty paced redraws.
+They measure requestAnimationFrame cadence, including scheduling and event-loop work.
+They do not prove GPU completion, sustained physical simulation at maximum resolution, or real-phone performance.
+Raw samples and environment details: [red-team-ui.json](../benchmarks/red-team-ui.json).
+
+`npx tsx scripts/measure-ui.ts` now records both submission cost and paced intervals, plus an active-pour case.
+The ten synchronous samples below remain historical evidence from the first review.
+Use the helper from tag v0.13.4 to reproduce that earlier protocol.
+
 ## What the measurements mean
 
 Measure rendering and solver time separately.
@@ -31,7 +58,7 @@ They measure CPU submission cost. They do not include asynchronous raster comple
 They do not measure a pouring maximum-resolution solver. Rendering every frame while pouring can invalidate the map more often.
 Timings vary with background activity, browser warmup and hardware.
 
-Reproduce the after measurement:
+Run the current paced measurement:
 
 ```bash
 npm run build

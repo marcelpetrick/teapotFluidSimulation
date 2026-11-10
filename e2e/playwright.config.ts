@@ -14,7 +14,9 @@ export default defineConfig({
     command: 'node scripts/serve-subpath.mjs dist 4173 /teapotFluidSimulation/',
     cwd: '..',
     url: 'http://127.0.0.1:4173/teapotFluidSimulation/',
-    reuseExistingServer: !process.env.CI,
+    // Verification must exercise this checkout's build. Reusing another preview can silently
+    // validate stale assets, especially when a staged-tree pipeline runs alongside a preview.
+    reuseExistingServer: false,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

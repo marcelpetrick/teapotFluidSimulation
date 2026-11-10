@@ -4,6 +4,7 @@
 // Canvas 2D rendering. Colours come only from immutable origin IDs (the renderer never
 // changes labels or metrics). Drawing uses a minimal context interface so it can be tested.
 
+import { drawDenseOrigins } from './dense';
 import { makePose, localToWorld } from '../sim/vessel';
 import { STATUS_DISCHARGED, STATUS_IN_POT, type RenderSnapshot } from '../sim/types';
 import type { StaticInfo } from '../worker/host';
@@ -175,6 +176,7 @@ export function drawParcels(
   theme: Theme,
   tempRange: [number, number],
 ): void {
+  if (drawDenseOrigins(ctx, v, info, snap, opts, theme)) return;
   const r = Math.max(1.2, info.h * v.scale * (opts.markers ? 0.42 : 0.3));
   const pos = snap.positions;
   const maxY = info.config.domainHeight;

@@ -13,5 +13,12 @@ The defaults below stay in use until you provide an answer.
 | Q6  | Are thermal predictions a priority? Are several temperature-probe measurements available? | Thermal modes remain exploratory.                            | Needed to fit and validate cooling boundaries.                           |
 | Q7  | Is the main goal explanation or quantitative prediction of your pot?                      | Explain transport with visible model limits.                 | Quantitative prediction needs measured geometry and a convergence study. |
 
+## Follow-up from adversarial review
+
+- **Q8:** Which browser and screen-reader combination should receive manual accessibility acceptance testing?
+  Current evidence covers keyboard operation, labels and browser integration. It does not establish full assistive-technology usability.
+- **Q9:** Should future public releases require every numerical acceptance gate to pass, or may they remain explicitly exploratory?
+  Current policy blocks quantitative real-pot claims. The unmet represented-volume gate stays visible.
+
 Repository, project name and licence are already resolved: PourLab, this repository, GPL-3.0-or-later.
 No further approval is needed for routine implementation choices or the requested public release.

@@ -69,7 +69,9 @@ results: this is a qualitative 2D model, not a calibrated digital twin of your t
 ## Performance and evidence
 
 The review measured render-call cost at the maximum 180,035 parcels: **147 ms → 11 ms** on the reference laptop.
-This measures drawing work, not real-time simulation at maximum resolution.
+This measures submission work, not real-time simulation at maximum resolution.
+A [follow-up paced test](docs/performance.md) exposed about 10.9 redraw opportunities/s at maximum count.
+The new dense pixel renderer raised that sample to about 60, while retaining all simulated parcels.
 The CPU-throttled phone layout also improved; real-phone performance remains unmeasured.
 See [performance evidence](docs/performance.md) for the method and raw data.
 
@@ -94,6 +96,8 @@ Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on
 | Physics checks       | hydrostatic rest, projection convergence, moving-wall tunnelling, outflow counted once, ledger closure, determinism, analytic diffusion, buoyancy, refinement study |
 
 ## Documentation
+
+- [Adversarial self-review](docs/red-team.md) — missed defects, corrective actions and remaining questions
 
 - [User guide](docs/guide.md) — short procedures, controls, results and limitations
 - [Review findings](docs/review.md) — confirmed defects, corrections and review limits

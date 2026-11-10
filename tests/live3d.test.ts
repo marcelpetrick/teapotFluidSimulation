@@ -308,3 +308,25 @@ it('does not resume a failed backend by toggling playing, and flushes final stat
   expect(v.poured()).toEqual([7, 0, 0]);
   v.dispose();
 });
+
+it('does not flush pipelined stats when pausing an unfinished run', async () => {
+  const { v, sims, flush } = setup();
+  let complete!: () => void;
+  const sync = vi.fn(async () => {});
+  Object.assign(sims[0], {
+    sync,
+    step: () =>
+      new Promise<void>((resolve) => {
+        complete = () => {
+          sims[0].time = 0.01;
+          resolve();
+        };
+      }),
+  });
+  v.tick(100);
+  v.playing = false;
+  complete();
+  await flush();
+  expect(sync).not.toHaveBeenCalled();
+  v.dispose();
+});

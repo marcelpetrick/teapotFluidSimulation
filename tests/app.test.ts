@@ -674,10 +674,10 @@ describe('adversarial state consistency', () => {
     t.app.render();
     expect(text.mock.calls.some((args) => args[0] === '0 mL')).toBe(true);
     expect(document.getElementById('scrubTime')!.textContent).toContain('charts and tables show latest');
-    t.app.frames[0].status[0] = 1;
+    t.app.frames[0].status.fill(1, 0, 100);
     text.mockClear();
     t.app.render();
-    const ml = (t.app.info!.parcelVolume * 1e6).toFixed(0) + ' mL';
+    const ml = (100 * t.app.info!.parcelVolume * 1e6).toFixed(0) + ' mL';
     expect(text.mock.calls.some((args) => args[0] === ml)).toBe(true);
   });
   it('requires a fresh live viewer after failure and re-enables controls on successful startup', async () => {

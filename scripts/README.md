@@ -14,7 +14,7 @@ Small reusable helpers. All are run from the repository root.
 
 More helpers:
 
-- `measure-ui.ts` — paused render-call cost at default and maximum parcel counts, plus a phone-sized CPU-throttled case:
+- `measure-ui.ts` — paced redraw cost and frame intervals at default and maximum parcel counts, an active-pour case, and a phone-sized CPU-throttled case:
   `npm run build && npx tsx scripts/measure-ui.ts`. This does not measure real-phone performance.
 - `../benchmarks/review-profile.ts` — full reference-state hash and isolated solver time:
   `npx tsx benchmarks/review-profile.ts [checkout-root] [repetitions]`.

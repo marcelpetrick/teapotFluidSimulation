@@ -195,7 +195,8 @@ The interface allows one outstanding frame request. Timeline storage includes po
 
 The initial-position map is cached by experiment, status values and theme.
 Position changes alone cannot change that map. A changed status or theme invalidates it.
-Opaque consecutive parcel colours share a canvas path. Translucent colours, glow and shape markers retain individual drawing.
+At 20,000 parcels or more, supported opaque origin views rasterize every parcel into a cached offscreen image.
+This avoids enormous overlapping paths. Other opaque views use consecutive-colour paths. Translucent colours, glow and shape markers retain individual drawing.
 Painter order and origin labels remain unchanged.
 
 A 3D viewer owns its scene geometry, materials and controls.

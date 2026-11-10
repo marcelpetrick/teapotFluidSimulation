@@ -159,3 +159,32 @@ test('phone-width editor supports keyboard and point buttons without horizontal 
   await expect(page.locator('#shapeUse')).toBeEnabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test('maximum parcel origin view renders without changing simulation state or erasing the canvas', async ({
+  page,
+}) => {
+  await page.goto('./?quality=128&ppc=4');
+  await expect(page.locator('#status')).toContainText('Ready');
+  const result = await page.evaluate<{
+    count: number;
+    draws: number;
+    hasOffscreen: boolean;
+    unchanged: boolean;
+    alpha: number;
+  }>(`(() => {
+    const app = window.pourlab;
+    const positions = app.snapshot.positions.slice();
+    const origins = app.info.origin.slice();
+    const original = CanvasRenderingContext2D.prototype.drawImage;
+    let draws = 0;
+    CanvasRenderingContext2D.prototype.drawImage = function(...args) { draws++; return original.apply(this, args); };
+    try { app.render(); } finally { CanvasRenderingContext2D.prototype.drawImage = original; }
+    const alpha = document.querySelector('#scene').getContext('2d').getImageData(0,0,1,1).data[3];
+    return { count: app.snapshot.count, draws, hasOffscreen: typeof OffscreenCanvas !== 'undefined',
+      unchanged: positions.every((x,i) => x === app.snapshot.positions[i]) && origins.every((x,i) => x === app.info.origin[i]), alpha };
+  })()`);
+  expect(result.count).toBeGreaterThan(170000);
+  expect(result.unchanged).toBe(true);
+  expect(result.alpha).toBe(255);
+  if (result.hasOffscreen) expect(result.draws).toBeGreaterThan(0);
+});

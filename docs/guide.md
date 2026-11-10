@@ -65,6 +65,12 @@ Use the lab look to avoid the extra glow pass.
 Increase resolution only for a new run. More parcels increase computation and memory use.
 The maximum setting has about 180,000 parcels. A fast redraw does not make that solver run in real time.
 
+At high parcel counts, opaque starting-layer views use a pixel buffer.
+All parcels remain in the simulation and metrics. Glow and shape markers retain the ordinary renderer.
+
+Scrubbing updates the scene, collector and initial-position map.
+Charts and tables retain the latest experiment measurements; the timeline label states this explicitly.
+
 Read the status line for achieved simulation speed.
 If the device falls behind, simulated time slows. The solver keeps stable substeps.
 
@@ -79,7 +85,7 @@ It does not compute a new physical experiment.
 **Run 3D live on your GPU** starts the optional WebGPU solver.
 It shows its measured speed. WebGPU needs a usable browser adapter and driver.
 
-If live startup fails, read the status message and open the recording.
+If a live run fails, start a new live run to request a fresh GPU device, or open the recording.
 The 2D baseline does not require WebGPU.
 
 ## Save evidence
