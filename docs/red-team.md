@@ -36,14 +36,15 @@ The unit tests check clipping, painter order, origin colours, highlights, buffer
 The paced maximum-count sample improved from about 10.9 to 60 redraw opportunities/s.
 This is a short local rendering test. It does not certify maximum-resolution solver throughput or a real smartphone.
 
-## Further improvements that need more evidence
+## Follow-through after the second pass
 
-1. Investigate the represented-volume gate with partial-cell occupancy and calibrated refinement studies.
-   A change to physics must preserve the reference result or receive explicit recalibration and documented justification.
-2. Measure the chosen real phone, including sustained temperature, battery load and touch interaction.
-3. Test a named screen-reader/browser combination with a person using that interface.
-4. Map critical requirements to specific assertions, rather than only test-file links.
-5. Benchmark longer runs and several parcel distributions before treating one short cadence sample as a performance guarantee.
+| Follow-up                      | Result                                                                                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Investigate represented volume | Added a 14-second, three-resolution still/pour audit and measuring-grid phase probe. All cases still fail the original gate; see [validation](validation.md). Physics and thresholds remain unchanged.             |
+| Measure the chosen real phone  | Requires an actual device and owner selection, Q4. Desktop CPU slowdown is explicitly separate evidence.                                                                                                           |
+| Test with a screen-reader user | Requires the named browser/assistive setup and a person, Q8. Automated keyboard tests remain available.                                                                                                            |
+| Trace critical assertions      | Added nine named test/assertion contracts, checked by the pipeline, including a negative stale-reference check. See [contracts](requirement-assertions.json). This is targeted, not exhaustive assertion coverage. |
+| Longer rendering samples       | Added 600 measured frames × three repetitions per case, both maximum-count pot layouts, active pouring and CPU slowdown. See [performance](performance.md).                                                        |
 
 Owner-dependent questions are in [questions.md](../questions.md).
 Routine implementation decisions were made directly; no additional approval was introduced.

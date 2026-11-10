@@ -1,6 +1,10 @@
 # Vision requirements traceability
 
 This matrix maps the original vision to the current implementation and its evidence.
+Critical regression contracts are mapped to named tests and assertion text in
+[requirement-assertions.json](requirement-assertions.json). The pipeline checks those references
+and executes their test files. This is a targeted safety net, not complete semantic coverage.
+
 Read the status and qualification together. A linked test file identifies evidence; it does not prove physical accuracy.
 
 The matrix contains **151 requirements** across all 18 vision sections.

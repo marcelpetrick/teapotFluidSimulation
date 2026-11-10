@@ -1,0 +1,697 @@
+{
+  "generatedAt": "2026-11-10T08:31:29.768Z",
+  "commit": "80c525af60463e43db781001c43896c40e638cbc",
+  "note": "No physics changes. The shifted measuring grid counts all in-pot parcels, including wall-intersecting cells, so it is a sensitivity probe, not a replacement for solver fluidCells or an independent volume measurement. Equal parcel volume makes the ledger exact by construction; it cannot validate spatial incompressibility. The original one-percent gate is retained.",
+  "results": [
+    {
+      "preset": "teapot-still",
+      "resolution": 32,
+      "parcels": 2774,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 709,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1542.1773612112472
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1602.7397260273972
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1626.5320836337419
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1598.4138428262438
+            }
+          ],
+          "phaseRangeMl": 84.35472242249466
+        },
+        {
+          "time": 2.0009596776927823,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.046544428772919866,
+          "originalGatePass": false,
+          "fluidCells": 676,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1483.7779379956742
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1576.7844268204758
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1583.273251622206
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1574.621485219899
+            }
+          ],
+          "phaseRangeMl": 99.49531362653192
+        },
+        {
+          "time": 7.000959677692676,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.046544428772919866,
+          "originalGatePass": false,
+          "fluidCells": 676,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1481.6149963950973
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1578.9473684210525
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1589.7620764239366
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1574.621485219899
+            }
+          ],
+          "phaseRangeMl": 108.14708002883935
+        },
+        {
+          "time": 14,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.046544428772919866,
+          "originalGatePass": false,
+          "fluidCells": 676,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1481.6149963950973
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1581.1103100216296
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1587.59913482336
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1572.4585436193222
+            }
+          ],
+          "phaseRangeMl": 105.98413842826267
+        }
+      ]
+    },
+    {
+      "preset": "teapot-still",
+      "resolution": 44,
+      "parcels": 5235,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 1366,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1569.0544412607453
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1577.0773638968483
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1594.2693409742124
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1575.9312320916906
+            }
+          ],
+          "phaseRangeMl": 25.214899713467048
+        },
+        {
+          "time": 2.000111050840501,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.05490483162518289,
+          "originalGatePass": false,
+          "fluidCells": 1291,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1483.0945558739256
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1532.378223495702
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1544.9856733524357
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1536.9627507163323
+            }
+          ],
+          "phaseRangeMl": 61.89111747851007
+        },
+        {
+          "time": 7.0001110508403945,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.056368960468521245,
+          "originalGatePass": false,
+          "fluidCells": 1289,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1483.0945558739256
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1538.10888252149
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1550.7163323782233
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1539.255014326648
+            }
+          ],
+          "phaseRangeMl": 67.62177650429771
+        },
+        {
+          "time": 14,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.056368960468521245,
+          "originalGatePass": false,
+          "fluidCells": 1289,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1483.0945558739256
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1538.10888252149
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1548.4240687679085
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1539.255014326648
+            }
+          ],
+          "phaseRangeMl": 65.32951289398284
+        }
+      ]
+    },
+    {
+      "preset": "teapot-still",
+      "resolution": 64,
+      "parcels": 11205,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 2854,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1528.7817938420349
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1544.8460508701473
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1568.942436412316
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1553.413654618474
+            }
+          ],
+          "phaseRangeMl": 40.1606425702812
+        },
+        {
+          "time": 2.0044506350634683,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.01892081289418357,
+          "originalGatePass": false,
+          "fluidCells": 2800,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1507.3627844712184
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1514.859437751004
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1539.4912985274432
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1537.3493975903616
+            }
+          ],
+          "phaseRangeMl": 32.12851405622473
+        },
+        {
+          "time": 7.004450635063362,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.01892081289418357,
+          "originalGatePass": false,
+          "fluidCells": 2800,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1507.3627844712184
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1520.214190093708
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1536.8139223560906
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1533.6010709504685
+            }
+          ],
+          "phaseRangeMl": 29.451137884872196
+        },
+        {
+          "time": 14,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.01892081289418357,
+          "originalGatePass": false,
+          "fluidCells": 2800,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1508.9692101740295
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1513.2530120481927
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1537.3493975903616
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1540.562248995984
+            }
+          ],
+          "phaseRangeMl": 31.59303882195445
+        }
+      ]
+    },
+    {
+      "preset": "teapot-gentle",
+      "resolution": 32,
+      "parcels": 2730,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 708,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1569.230769230769
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1615.3846153846155
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1599.9999999999998
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1578.0219780219782
+            }
+          ],
+          "phaseRangeMl": 46.153846153846416
+        },
+        {
+          "time": 2.002016566541226,
+          "inPotMl": 1454.3956043956046,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": -0.0691572807079327,
+          "originalGatePass": false,
+          "fluidCells": 639,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1509.8901098901097
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1503.2967032967033
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1507.6923076923078
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1505.4945054945053
+            }
+          ],
+          "phaseRangeMl": 6.593406593406371
+        },
+        {
+          "time": 7.001002252951923,
+          "inPotMl": 1115.3846153846155,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": -0.01987142022209243,
+          "originalGatePass": false,
+          "fluidCells": 516,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1173.6263736263736
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1178.021978021978
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1158.2417582417581
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1156.043956043956
+            }
+          ],
+          "phaseRangeMl": 21.978021978021843
+        },
+        {
+          "time": 14,
+          "inPotMl": 1115.3846153846155,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": -0.05786090005844535,
+          "originalGatePass": false,
+          "fluidCells": 496,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1118.6813186813185
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1169.2307692307693
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1158.2417582417581
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1151.6483516483515
+            }
+          ],
+          "phaseRangeMl": 50.54945054945074
+        }
+      ]
+    },
+    {
+      "preset": "teapot-gentle",
+      "resolution": 44,
+      "parcels": 5259,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500,
+          "ledgerErrorMl": 0,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 1368,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1579.0074158585282
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1563.0347974900167
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1550.484883057615
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1598.4027381631488
+            }
+          ],
+          "phaseRangeMl": 47.91785510553382
+        },
+        {
+          "time": 2.0025045747013626,
+          "inPotMl": 1432.6868225898459,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.057867581056962436,
+          "originalGatePass": false,
+          "fluidCells": 1231,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1461.4945807187678
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1470.6217912150596
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1467.1990872789504
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1450.0855675984026
+            }
+          ],
+          "phaseRangeMl": 20.536223616657026
+        },
+        {
+          "time": 7.000559647968071,
+          "inPotMl": 1099.8288648031946,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.053879918286379724,
+          "originalGatePass": false,
+          "fluidCells": 949,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1123.7877923559613
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1131.7741015402166
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1130.6332002281802
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1143.1831146605816
+            }
+          ],
+          "phaseRangeMl": 19.395322304620322
+        },
+        {
+          "time": 14,
+          "inPotMl": 1099.8288648031946,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.057867779537016606,
+          "originalGatePass": false,
+          "fluidCells": 945,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1118.0832857957785
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1123.7877923559613
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1132.915002852253
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1153.4512264689101
+            }
+          ],
+          "phaseRangeMl": 35.36794067313167
+        }
+      ]
+    },
+    {
+      "preset": "teapot-gentle",
+      "resolution": 64,
+      "parcels": 11174,
+      "samples": [
+        {
+          "time": 0,
+          "inPotMl": 1500.0000000000002,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": 0,
+          "originalGatePass": true,
+          "fluidCells": 2895,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1557.1863253982458
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1558.260247001969
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1545.910148559155
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1538.929658134956
+            }
+          ],
+          "phaseRangeMl": 19.33058886701292
+        },
+        {
+          "time": 2.0015389383021116,
+          "inPotMl": 1417.5765169142653,
+          "ledgerErrorMl": 0,
+          "representedDrift": -0.04968074527660016,
+          "originalGatePass": false,
+          "fluidCells": 2600,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1434.2223017719707
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1439.591909790585
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1439.591909790585
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1435.833184177555
+            }
+          ],
+          "phaseRangeMl": 5.369608018614372
+        },
+        {
+          "time": 7.001280584676407,
+          "inPotMl": 1096.4739574011098,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": -0.05065447705270498,
+          "originalGatePass": false,
+          "fluidCells": 2009,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1094.3261141936637
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1121.7111150885985
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1117.4154286737066
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1097.0109182029712
+            }
+          ],
+          "phaseRangeMl": 27.38500089493482
+        },
+        {
+          "time": 14,
+          "inPotMl": 1096.4739574011098,
+          "ledgerErrorMl": 2.1684043449710089e-13,
+          "representedDrift": -0.04829174553715654,
+          "originalGatePass": false,
+          "fluidCells": 2014,
+          "gridPhaseProbe": [
+            {
+              "phase": 0,
+              "occupiedMl": 1094.3261141936637
+            },
+            {
+              "phase": 0.25,
+              "occupiedMl": 1123.8589582960444
+            },
+            {
+              "phase": 0.5,
+              "occupiedMl": 1112.5827814569536
+            },
+            {
+              "phase": 0.75,
+              "occupiedMl": 1097.0109182029712
+            }
+          ],
+          "phaseRangeMl": 29.53284410238075
+        }
+      ]
+    }
+  ]
+}

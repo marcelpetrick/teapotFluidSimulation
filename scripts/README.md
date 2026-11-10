@@ -15,12 +15,12 @@ Small reusable helpers. All are run from the repository root.
 More helpers:
 
 - `measure-ui.ts` — paced redraw cost and frame intervals at default and maximum parcel counts, an active-pour case, and a phone-sized CPU-throttled case:
-  `npm run build && npx tsx scripts/measure-ui.ts`. This does not measure real-phone performance.
+  `npm run build && npx tsx scripts/measure-ui.ts [samples=600] [repetitions=3]`. Includes both maximum-count vessel layouts. This does not measure real-phone performance.
 - `../benchmarks/review-profile.ts` — full reference-state hash and isolated solver time:
   `npx tsx benchmarks/review-profile.ts [checkout-root] [repetitions]`.
 
 - `check-requirements.mjs` — checks unique requirement IDs, status counts, evidence links and coverage of all numbered vision sections:
-  `node scripts/check-requirements.mjs`. It checks structure, not scientific validity.
+  `node scripts/check-requirements.mjs`. It checks structure and the named test/assertion references in `docs/requirement-assertions.json`, not scientific validity.
 
 - `check-links.mjs` — fails if a relative link or image in any tracked Markdown file is broken (pipeline
   stage): `node scripts/check-links.mjs`.
@@ -53,3 +53,8 @@ scripts/bump-version.sh patch      # or minor for a major feature
 git add <files>
 scripts/commit.sh "feat(sim): ..."  # verifies the staged tree, then commits and pushes
 ```
+
+- `../benchmarks/volume-audit.ts` — unchanged-solver volume diagnostics at three resolutions,
+  with a shifted measuring-grid sensitivity probe:
+  `npx tsx benchmarks/volume-audit.ts > benchmarks/volume-audit.json`.
+  The probe cannot replace the original incompressibility gate.

@@ -47,10 +47,24 @@ const declared = /contains \*\*(\d+) requirements\*\*/.exec(text);
 if (!declared || Number(declared[1]) !== rows.length) errors.push('Incorrect total requirement count');
 for (const match of vision.toString('utf8').matchAll(/^## (\d+)\./gm))
   if (!sections.has(match[1])) errors.push(`Vision section ${match[1]} has no mapped requirement`);
+// Critical contracts name both the test and an assertion inside its body. The full
+// pipeline executes these tests; this check detects stale trace links, not correctness.
+const contracts = JSON.parse(readFileSync('docs/requirement-assertions.json', 'utf8'));
+for (const contract of contracts) {
+  const { requirement, file: testFile, test, assertion } = contract;
+  if (!ids.has(requirement)) errors.push(`Unknown assertion requirement ${requirement}`);
+  const source = readFileSync(testFile, 'utf8');
+  const declaration = `it('${test}'`;
+  const start = source.indexOf(declaration);
+  const next = source.indexOf('\n  it(', start + declaration.length);
+  const body = source.slice(start, next < 0 ? undefined : next);
+  if (start < 0 || !assertion.startsWith('expect(') || !body.includes(assertion))
+    errors.push(`Stale assertion evidence: ${requirement}: ${testFile}: ${test}`);
+}
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);
 }
 console.log(
-  `Requirements: ${rows.length} unique rows; ${sections.size} vision sections; status counts agree.`,
+  `Requirements: ${rows.length} unique rows; ${sections.size} vision sections; status counts agree; ${contracts.length} named assertion contracts exist.`,
 );

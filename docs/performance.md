@@ -1,5 +1,25 @@
 # Performance evidence
 
+## Extended repeatability check
+
+The current helper defaults to **60 warmup frames, 600 measured frames, three repetitions**.
+Each case spans about ten seconds on this desktop, longer when redraws miss display opportunities.
+[Raw samples and environment](../benchmarks/extended-ui.json) retain every interval and submission time.
+
+| Case                                    | Parcels | Redraw opportunities/s across repetitions | Worst repetition p95 interval |
+| --------------------------------------- | ------: | ----------------------------------------: | ----------------------------: |
+| Default spout pot, paused               |   5,259 |                                 60.0–60.0 |                       16.8 ms |
+| Maximum spout pot, paused               | 180,035 |                                 60.0–60.0 |                       16.8 ms |
+| Maximum glass pot, paused               | 115,851 |                                 60.0–60.0 |                       16.7 ms |
+| Default spout pour with worker traffic  |   5,259 |                                 58.1–60.0 |                       16.8 ms |
+| Phone viewport, 4× CPU slowdown, paused |   5,259 |                                 54.6–56.6 |                       33.3 ms |
+
+This longer sample exposes occasional missed frames under CPU throttling that the old half-second
+sample missed. The pouring case starts after 50 mL discharge and can finish during the sample;
+the raw data records simulated time advanced. Maximum-count cases test two seeded parcel distributions,
+not maximum-resolution solver throughput. These observations still do not establish sustained phone
+thermals, battery use, GPU completion, or performance on other hardware.
+
 ## Follow-up: paced redraws exposed a hidden bottleneck
 
 The original synchronous test did not measure frame cadence.
@@ -23,7 +43,7 @@ They measure requestAnimationFrame cadence, including scheduling and event-loop 
 They do not prove GPU completion, sustained physical simulation at maximum resolution, or real-phone performance.
 Raw samples and environment details: [red-team-ui.json](../benchmarks/red-team-ui.json).
 
-`npx tsx scripts/measure-ui.ts` now records both submission cost and paced intervals, plus an active-pour case.
+`npx tsx scripts/measure-ui.ts 30 1` reproduces the shorter sample count and now records both submission cost and paced intervals, plus an active-pour case.
 The ten synchronous samples below remain historical evidence from the first review.
 Use the helper from tag v0.13.4 to reproduce that earlier protocol.
 

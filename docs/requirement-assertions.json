@@ -1,0 +1,56 @@
+[
+  {
+    "requirement": "R002",
+    "file": "tests/solver.test.ts",
+    "test": "origin bands are equal-volume, ordered by height and immutable",
+    "assertion": "expect(Array.from(sim.origin)).toEqual(Array.from(before));"
+  },
+  {
+    "requirement": "R101",
+    "file": "tests/solver.test.ts",
+    "test": "results do not depend on how simulated time is chunked (browser pumping)",
+    "assertion": "expect(Array.from(s.x)).toEqual(Array.from(r.x));"
+  },
+  {
+    "requirement": "R012",
+    "file": "tests/metrics.test.ts",
+    "test": "is undefined before discharge and correct after",
+    "assertion": "expect(c.dischargedFractions).toEqual([0.75, 0, 0.25]);"
+  },
+  {
+    "requirement": "R013",
+    "file": "tests/metrics.test.ts",
+    "test": "bins discharge by volume and keeps the partial bin",
+    "assertion": "expect(bins[2].partial).toBe(true);"
+  },
+  {
+    "requirement": "R003",
+    "file": "tests/experiment.test.ts",
+    "test": "contains everything needed to reproduce and judge the run",
+    "assertion": "expect(r.limitations.length).toBeGreaterThan(5);"
+  },
+  {
+    "requirement": "R113",
+    "file": "tests/host.test.ts",
+    "test": "init, play, bounded frames, pause, step, speed, export",
+    "assertion": "expect(h.sim!.time).toBeLessThanOrEqual(0.02 + MAX_DEBT + 2 * h.sim!.cfg.maxSubstep + 1e-9);"
+  },
+  {
+    "requirement": "R114",
+    "file": "tests/app.test.ts",
+    "test": "bounds the stored-frame history",
+    "assertion": "expect(t.app.frames.length).toBeLessThanOrEqual(900);"
+  },
+  {
+    "requirement": "R094",
+    "file": "tests/app.test.ts",
+    "test": "matches the no-pour control duration and stops playback after worker failure",
+    "assertion": "expect(t.app.info!.config.duration).toBe(25);"
+  },
+  {
+    "requirement": "R002",
+    "file": "tests/dense.test.ts",
+    "test": "preserves painter order and origin colours without modifying state",
+    "assertion": "expect(info.origin).toEqual(origins);"
+  }
+]

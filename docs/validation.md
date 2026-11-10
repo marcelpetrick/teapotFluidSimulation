@@ -44,6 +44,30 @@ it does not measure the occupied-area drift reported by `representedDrift`.
 The parcel ledger can close while the occupied area changes. Treat pouring results as exploratory.
 The earlier pass claim used the wrong metric and is withdrawn.
 
+## Represented-volume investigation
+
+[The observational runner](../benchmarks/volume-audit.ts) now records 14-second still and gentle-pour
+cases at 32, 44 and 64 cells, with samples at 0, 2, 7 and 14 seconds.
+[Raw results](../benchmarks/volume-audit.json) preserve the original diagnostic and acceptance gate.
+
+| Cells across body | Still: final occupied-volume drift | Gentle pour: final drift |
+| ----------------: | ---------------------------------: | -----------------------: |
+|                32 |                             −4.65% |                   −5.79% |
+|                44 |                             −5.64% |                   −5.79% |
+|                64 |                             −1.89% |                   −4.83% |
+
+None passes the one-percent gate. The error is also present without discharge; increasing resolution
+does not yet demonstrate convergence of the pouring diagnostic.
+Translating only a separate measuring grid by quarter-cell increments changes occupied volume by
+about 5–108 mL across these samples. That probe counts every in-pot parcel's cell, including cells
+that intersect walls; it is not identical to the solver's fluid-cell classification.
+It demonstrates sensitivity of binary cell counting, not proof that the spatial flow is incompressible.
+
+A valid resolution needs an independently justified free-surface/partial-cell reconstruction and a
+new refinement study, followed by calibration if physics changes. Summing parcel volume would pass
+by construction and cannot replace that evidence. This audit changes no solver state or acceptance
+threshold. The existing quantitative gate remains open; the release is an exploratory simulation.
+
 ## Thermal benchmark: differentially heated cavity (`benchmarks/cavity.ts`)
 
 Standard natural-convection test (de Vahl Davis 1983, Pr = 0.71): closed square box filled with liquid,
