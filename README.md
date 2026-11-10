@@ -39,6 +39,8 @@ mode’s heated-cavity benchmark.
 live on your GPU** computes the same pour while you watch, with a WebGPU port of that solver. You can
 rotate, zoom and pan in both. Live mode also lets you restart the pour, switch to finer 4 mm cells, or tilt
 the pot yourself. Without WebGPU, the live button is disabled and the recording remains.
+The page shows Firefox and Chrome setup instructions, with Linux and Android guidance.
+On Linux, WebGPU may need enabling even when the GPU and driver support it.
 
 | Run                                     | Simulated pour | Compute time           | Compared with real time |
 | --------------------------------------- | -------------- | ---------------------- | ----------------------- |

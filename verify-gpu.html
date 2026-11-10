@@ -17,10 +17,12 @@
       <h1>PourLab GPU check</h1>
       <p>
         Runs the WebGPU 3D solver on your GPU next to the CPU reference solver and compares them. Nothing is
-        sent anywhere. <a href="./">Back to PourLab</a>
+        sent anywhere. The full pour compares against a stored CPU reference result.
+        <a href="./">Back to PourLab</a>
       </p>
-      <p id="adapter">Looking for a WebGPU adapter...</p>
-      <p>
+      <p id="adapter" role="status" aria-live="polite">Looking for a WebGPU adapter...</p>
+      <aside id="webgpuHelp" class="hint" aria-label="WebGPU setup help" hidden></aside>
+      <p id="gpuActions" hidden>
         <button
           id="compare"
           type="button"

@@ -271,13 +271,15 @@ describe('gpu3d verification harness', () => {
 describe('gpu3d check page', () => {
   const page = () => {
     document.body.innerHTML =
-      '<p id="adapter"></p><button id="compare" disabled></button><button id="pour" disabled></button><pre id="out"></pre>';
+      '<aside id="webgpuHelp" hidden></aside><p id="gpuActions" hidden></p><p id="adapter"></p><button id="compare" disabled></button><button id="pour" disabled></button><pre id="out"></pre>';
   };
 
   it('explains the fallback without WebGPU or without an adapter', async () => {
     page();
     await startGpuCheck(document, undefined);
-    expect(document.getElementById('adapter')?.textContent).toContain('keeps playing the CPU recording');
+    expect(document.getElementById('adapter')?.textContent).toContain('WebGPU is not enabled or available');
+    expect(document.getElementById('webgpuHelp')?.hidden).toBe(false);
+    expect(document.getElementById('gpuActions')?.hidden).toBe(true);
     await startGpuCheck(document, { requestAdapter: async () => null } as unknown as GPU);
     expect(document.getElementById('adapter')?.textContent).toContain(
       'WebGPU unavailable: no WebGPU adapter',
@@ -301,6 +303,8 @@ describe('gpu3d check page', () => {
     } as unknown as GPU;
     await startGpuCheck(document, gpu);
     expect(document.getElementById('adapter')?.textContent).toBe('WebGPU adapter: fake');
+    expect(document.getElementById('webgpuHelp')?.hidden).toBe(true);
+    expect(document.getElementById('gpuActions')?.hidden).toBe(false);
     const api = (globalThis as unknown as { pourlabGpu: Record<string, unknown> }).pourlabGpu;
     listeners[0]({ error: { message: 'boom' } });
     expect(document.getElementById('out')?.textContent).toContain('GPU error: boom');

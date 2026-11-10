@@ -4,6 +4,7 @@
 // Entry of verify-gpu.html: runs the GPU-vs-CPU checks in the visitor's browser. The functions are
 // also exposed on window.pourlabGpu for the automated browser tests and scripts/verify-gpu.ts.
 
+import { showWebgpuHelp } from '../ui/webgpuHelp';
 import { gentlePour3D } from '../sim3d/presets3d';
 import { requestSolverDevice } from './solver';
 import { compareSteps, runPour } from './verify';
@@ -14,11 +15,15 @@ export const CPU_5MM = { dischargedMl: 406.78, fractions: [0.2771, 0.5194, 0.203
 export async function startGpuCheck(doc: Document, gpu: GPU | undefined): Promise<void> {
   const out = doc.getElementById('out') as HTMLElement;
   const adapterEl = doc.getElementById('adapter') as HTMLElement;
+  showWebgpuHelp(doc, false);
+  const actions = doc.getElementById('gpuActions');
+  if (actions) actions.hidden = true;
   const log = (s: string) => {
     out.textContent += `${s}\n`;
   };
   if (!gpu) {
-    adapterEl.textContent = 'This browser has no WebGPU. The 3D view keeps playing the CPU recording.';
+    adapterEl.textContent = 'GPU checks cannot run: WebGPU is not enabled or available in this session.';
+    showWebgpuHelp(doc, true);
     return;
   }
   let device: GPUDevice;
@@ -33,6 +38,7 @@ export async function startGpuCheck(doc: Document, gpu: GPU | undefined): Promis
     adapterEl.textContent =
       `WebGPU adapter: ${r.info.vendor || 'unknown vendor'} ${r.info.architecture || ''} ${r.info.description || ''}`.trim();
   } catch (e) {
+    showWebgpuHelp(doc, true);
     adapterEl.textContent = `WebGPU unavailable: ${e instanceof Error ? e.message : String(e)}`;
     return;
   }
@@ -46,6 +52,7 @@ export async function startGpuCheck(doc: Document, gpu: GPU | undefined): Promis
   (globalThis as unknown as { pourlabGpu: typeof api }).pourlabGpu = api;
   const compareBtn = doc.getElementById('compare') as HTMLButtonElement;
   const pourBtn = doc.getElementById('pour') as HTMLButtonElement;
+  if (actions) actions.hidden = false;
   compareBtn.disabled = false;
   pourBtn.disabled = false;
   compareBtn.addEventListener('click', async () => {

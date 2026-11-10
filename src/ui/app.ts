@@ -20,6 +20,7 @@ import {
   validateSettings,
   type UserSettings,
 } from '../sim/config';
+import { showWebgpuHelp } from './webgpuHelp';
 import { modelLimitations } from '../sim/experiment';
 import { STATUS_DISCHARGED, type Diagnostics, type RenderSnapshot } from '../sim/types';
 import { summarize } from '../sim/metrics';
@@ -474,11 +475,12 @@ export class App {
       this.sync3dControls();
     });
     on('v3tilt', 'input', (e) => this.viewer3d?.setTilt?.(Number((e.target as HTMLInputElement).value)));
+    showWebgpuHelp(this.d.doc, !this.d.webgpu || !this.d.open3dLive);
     if (!this.d.webgpu || !this.d.open3dLive) {
       const b = this.el<HTMLButtonElement>('open3dLive');
       b.disabled = true;
       b.title =
-        'This browser has no WebGPU, so the 3D pour cannot run live here. The recording shows the same solver.';
+        'WebGPU is not enabled or available in this session. See the setup help below, or open the 3D recording.';
     }
     on('v3play', 'click', () => {
       if (!this.viewer3d) return;
@@ -599,6 +601,7 @@ export class App {
         : await this.d.open3d!(canvas, this.theme3d());
     } catch (e) {
       this.el('view3dBox').hidden = true;
+      if (live) showWebgpuHelp(this.d.doc, true);
       status.textContent = `${live ? 'Live 3D run' : '3D view'} unavailable: ${e instanceof Error ? e.message : String(e)}`;
       return;
     } finally {
@@ -608,8 +611,10 @@ export class App {
     }
     const v = this.viewer3d;
     this.failed3d = false;
+    if (live) showWebgpuHelp(this.d.doc, false);
     v.onError = (message) => {
       this.failed3d = true;
+      showWebgpuHelp(this.d.doc, true);
       v.playing = false;
       this.el('open3dLive').hidden = false;
       status.textContent = `Live 3D run stopped: ${message}. Start a new live run to request a fresh GPU device, or open the recording.`;

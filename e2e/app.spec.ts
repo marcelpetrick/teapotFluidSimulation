@@ -188,3 +188,25 @@ test('maximum parcel origin view renders without changing simulation state or er
   expect(result.alpha).toBe(255);
   if (result.hasOffscreen) expect(result.draws).toBeGreaterThan(0);
 });
+
+test('unavailable WebGPU explains Linux and Android setup on both pages', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'gpu', { configurable: true, get: () => undefined });
+  });
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('./verify-gpu.html');
+  await expect(page.locator('#adapter')).toContainText('not enabled or available');
+  await expect(page.locator('#gpuActions')).toBeHidden();
+  await expect(page.locator('#compare')).toBeDisabled();
+  await expect(page.locator('#webgpuHelp')).toBeVisible();
+  await expect(page.locator('#webgpuHelp')).toContainText('dom.webgpu.enabled');
+  await expect(page.locator('#webgpuHelp')).toContainText('chrome://flags/#enable-vulkan');
+  await expect(page.locator('#webgpuHelp')).toContainText('Firefox Android stable');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await page.goto('./?preset=tank-rest');
+  await expect(page.locator('#status')).toContainText('Ready');
+  await expect(page.locator('#open3dLive')).toBeDisabled();
+  await expect(page.locator('#open3d')).toBeEnabled();
+  await expect(page.locator('#webgpuHelp')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});

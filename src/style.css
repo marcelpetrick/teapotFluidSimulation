@@ -607,3 +607,12 @@ input[type='range'] {
     max-width: calc(100% - 24px);
   }
 }
+
+#webgpuHelp {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+#webgpuHelp details {
+  max-width: 70ch;
+}

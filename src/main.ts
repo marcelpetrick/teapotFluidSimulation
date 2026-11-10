@@ -41,7 +41,7 @@ const app = new App({
     ),
   open3dLive: (canvas, theme, preset) =>
     import('./view3d/loadLive').then((m) => m.open3dLive(canvas, theme, preset as LivePreset)),
-  webgpu: 'gpu' in navigator,
+  webgpu: Boolean(navigator.gpu),
   audio: () => {
     const Ctor =
       window.AudioContext ??

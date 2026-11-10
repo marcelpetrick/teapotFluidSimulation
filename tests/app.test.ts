@@ -500,6 +500,7 @@ describe('App (integration with the real simulation host)', () => {
     const canvas = $('view3dCanvas');
     await t.app.open3D(false);
     expect(t.live3d.disposed).toBe(1);
+    expect(document.getElementById('webgpuHelp')!.hidden).toBe(true);
     expect($('view3dCanvas')).not.toBe(canvas);
     expect($('v3scrub').hidden).toBe(false);
     expect($('v3presetBox').hidden).toBe(true);
@@ -512,11 +513,14 @@ describe('App (integration with the real simulation host)', () => {
     await t.settle();
     const b = $('open3dLive') as HTMLButtonElement;
     expect(b.disabled).toBe(true);
-    expect(b.title).toMatch(/no WebGPU/);
+    expect(b.title).toMatch(/not enabled or available/);
+    expect($('webgpuHelp').hidden).toBe(false);
+    expect($('webgpuHelp').textContent).toContain('dom.webgpu.enabled');
     const u = setup('?preset=tank-rest&nolive=1');
     await u.settle();
     await u.app.open3D(true);
     expect($('v3status').textContent).toBe('Live 3D run unavailable: no WebGPU adapter');
+    expect($('webgpuHelp').hidden).toBe(false);
   });
 
   it('explains when the 3D view cannot open', async () => {
@@ -597,6 +601,7 @@ describe('review regressions', () => {
     expect(document.getElementById('v3play')!.textContent).toBe('Pause');
     t.app.viewer3d!.playing = false;
     t.app.viewer3d!.onError!('device lost');
+    expect(document.getElementById('webgpuHelp')!.hidden).toBe(false);
     expect(document.getElementById('v3status')!.textContent).toContain('device lost');
     expect(document.getElementById('v3play')!.textContent).toBe('Play');
   });
@@ -685,11 +690,13 @@ describe('adversarial state consistency', () => {
     await t.settle();
     await t.app.open3D(true);
     t.app.viewer3d!.onError!('device lost');
+    expect(document.getElementById('webgpuHelp')!.hidden).toBe(false);
     expect((document.getElementById('v3play') as HTMLButtonElement).disabled).toBe(true);
     expect((document.getElementById('v3restart') as HTMLButtonElement).disabled).toBe(true);
     expect(document.getElementById('open3dLive')!.hidden).toBe(false);
     await t.app.open3D(true);
     expect(t.live3d.disposed).toBe(1);
+    expect(document.getElementById('webgpuHelp')!.hidden).toBe(true);
     expect((document.getElementById('v3play') as HTMLButtonElement).disabled).toBe(false);
   });
 });
