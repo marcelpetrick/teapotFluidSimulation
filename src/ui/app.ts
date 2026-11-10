@@ -21,7 +21,7 @@ import {
   type UserSettings,
 } from '../sim/config';
 import { modelLimitations } from '../sim/experiment';
-import type { Diagnostics, RenderSnapshot } from '../sim/types';
+import { STATUS_DISCHARGED, type Diagnostics, type RenderSnapshot } from '../sim/types';
 import { summarize } from '../sim/metrics';
 import type { FrameMetrics, FromWorker, StaticInfo, ToWorker } from '../worker/host';
 import {
@@ -571,6 +571,7 @@ export class App {
   }
 
   private opening3d = false;
+  private failed3d = false;
 
   /** Open the 3D view: the recording, or (live) the WebGPU solver computing the pour now. */
   async open3D(live = false): Promise<void> {
@@ -606,8 +607,12 @@ export class App {
       this.el<HTMLButtonElement>('open3dLive').disabled = !this.d.webgpu || !this.d.open3dLive;
     }
     const v = this.viewer3d;
+    this.failed3d = false;
     v.onError = (message) => {
-      status.textContent = `Live 3D run stopped: ${message}. Restart the run or open the recording.`;
+      this.failed3d = true;
+      v.playing = false;
+      this.el('open3dLive').hidden = false;
+      status.textContent = `Live 3D run stopped: ${message}. Start a new live run to request a fresh GPU device, or open the recording.`;
       this.sync3dControls();
     };
     v.speed = Number(this.el<HTMLSelectElement>('v3speed').value);
@@ -632,6 +637,8 @@ export class App {
     this.el('v3scrub').hidden = live;
     this.el('v3presetBox').hidden = !live;
     this.el('v3tiltBox').hidden = !(live && v?.manual);
+    for (const id of ['v3play', 'v3restart', 'v3preset', 'v3tilt'])
+      (this.el(id) as HTMLButtonElement | HTMLSelectElement | HTMLInputElement).disabled = this.failed3d;
     const play = this.el('v3play');
     play.textContent = v?.playing ? 'Pause' : 'Play';
     play.setAttribute('aria-pressed', String(!!v?.playing));
@@ -922,7 +929,14 @@ export class App {
     if (opts.pathlines && this.metrics && !frame)
       drawPathlines(ctx, vp, info, this.metrics.pathlines, theme, shown.status, angle);
     if (opts.arrows && !frame) drawArrows(ctx, vp, this.arrows, theme);
-    const byOrigin = this.metrics ? this.metrics.composition.dischargedByOrigin : [0, 0, 0];
+    const byOrigin = frame
+      ? new Array<number>(info.bandNames.length).fill(0)
+      : this.metrics
+        ? this.metrics.composition.dischargedByOrigin
+        : [0, 0, 0];
+    if (frame)
+      for (let p = 0; p < frame.status.length; p++)
+        if (frame.status[p] === STATUS_DISCHARGED) byOrigin[info.origin[p]] += info.parcelVolume;
     const cap = Math.max(info.config.motion.targetVolume * 1.4, 500e-6);
     drawGlass(
       ctx,
@@ -935,7 +949,9 @@ export class App {
       info.bandNames,
       theme,
     );
-    if (frame) this.el('scrubTime').textContent = `${frame.time.toFixed(2)} s (stored frame)`;
+    if (frame)
+      this.el('scrubTime').textContent =
+        `${frame.time.toFixed(2)} s (stored frame; charts and tables show latest results)`;
     else this.el('scrubTime').textContent = `${snap.time.toFixed(2)} s`;
 
     const im = this.el<HTMLCanvasElement>('initialMap');

@@ -660,3 +660,36 @@ describe('worker request regressions', () => {
     expect(document.getElementById('status')!.textContent).toContain('worker failed');
   });
 });
+
+describe('adversarial state consistency', () => {
+  it('uses stored discharge statuses for the scrubbed collector, while identifying latest charts', async () => {
+    const t = setup();
+    await t.settle();
+    t.app.metrics!.composition.dischargedByOrigin = [100e-6, 200e-6, 100e-6];
+    const ctx = fakeCtx();
+    const text = vi.fn<(text: string, x: number, y: number) => void>();
+    Object.assign(ctx, { fillText: text });
+    t.deps.getContext = () => ctx;
+    t.app.scrubIndex = 0;
+    t.app.render();
+    expect(text.mock.calls.some((args) => args[0] === '0 mL')).toBe(true);
+    expect(document.getElementById('scrubTime')!.textContent).toContain('charts and tables show latest');
+    t.app.frames[0].status[0] = 1;
+    text.mockClear();
+    t.app.render();
+    const ml = (t.app.info!.parcelVolume * 1e6).toFixed(0) + ' mL';
+    expect(text.mock.calls.some((args) => args[0] === ml)).toBe(true);
+  });
+  it('requires a fresh live viewer after failure and re-enables controls on successful startup', async () => {
+    const t = setup();
+    await t.settle();
+    await t.app.open3D(true);
+    t.app.viewer3d!.onError!('device lost');
+    expect((document.getElementById('v3play') as HTMLButtonElement).disabled).toBe(true);
+    expect((document.getElementById('v3restart') as HTMLButtonElement).disabled).toBe(true);
+    expect(document.getElementById('open3dLive')!.hidden).toBe(false);
+    await t.app.open3D(true);
+    expect(t.live3d.disposed).toBe(1);
+    expect((document.getElementById('v3play') as HTMLButtonElement).disabled).toBe(false);
+  });
+});

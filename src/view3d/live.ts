@@ -47,6 +47,7 @@ export interface LiveSim {
     readonly cfg: { pivot: [number, number]; teapot: Teapot3DConfig };
   };
   step(): Promise<void>;
+  sync?(): Promise<void>;
   readRenderPositions(): Promise<Float32Array>;
   destroy(): void;
 }
@@ -296,6 +297,9 @@ export class LivePourViewer {
         if (sim !== this.sim || this.disposed) return;
         if (sim.controller.phase === 'done' && this.doneAt < 0 && !this.manual) this.doneAt = sim.time;
       }
+      // Flush the final pipelined stats only after completion; flushing a pause would alter the
+      // one-step lag used for subsequent substeps and break pause-independent determinism.
+      if (sim === this.sim && !this.disposed && this.finished) await sim.sync?.();
     } catch (e) {
       if (sim === this.sim) this.fail(e);
     } finally {
@@ -330,6 +334,7 @@ export class LivePourViewer {
 
   /** One animation frame: keep the simulation going, fetch the parcel positions, render. */
   tick(dtMs: number): void {
+    if (this.failed) this.playing = false;
     if (this.playing && !this.finished) {
       // A slower GPU falls behind by at most MAX_LAG_S; the measured speed then shows it.
       this.goal = Math.min(this.goal + (dtMs / 1000) * this.speed, this.sim.time + MAX_LAG_S);

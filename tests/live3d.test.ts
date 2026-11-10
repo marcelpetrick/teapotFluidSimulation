@@ -283,3 +283,28 @@ it('ignores a completed substep from the run that was replaced during its await'
   expect(v.finished).toBe(false);
   v.dispose();
 });
+
+it('does not resume a failed backend by toggling playing, and flushes final statistics', async () => {
+  const { v, sims, flush } = setup();
+  const sim = sims[0];
+  const step = vi.spyOn(sim, 'step').mockRejectedValueOnce(new Error('device lost'));
+  v.tick(100);
+  await flush();
+  v.playing = true;
+  v.tick(100);
+  await flush();
+  expect(step).toHaveBeenCalledTimes(1);
+  expect(v.playing).toBe(false);
+  v.restart();
+  const fresh = sims[1];
+  fresh.duration = 0.01;
+  const sync = vi.fn(async () => {
+    fresh.stats.dischargedByOrigin = [7, 0, 0];
+  });
+  Object.assign(fresh, { sync });
+  v.tick(100);
+  await flush();
+  expect(sync).toHaveBeenCalledOnce();
+  expect(v.poured()).toEqual([7, 0, 0]);
+  v.dispose();
+});
