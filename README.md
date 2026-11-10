@@ -93,7 +93,12 @@ npm ci
 npm run dev          # http://localhost:5173
 ```
 
-Requires Node.js ≥ 22. `npm run build` produces a static `dist/` that works on any sub-path.
+Requires Node.js **22.13+ within 22.x, 24.x, or 26+**, matching the development tools’ engine ranges.
+CI uses Node.js 24. `npm run build` produces a static `dist/` that works on any sub-path.
+
+The lint toolchain temporarily overrides `minimatch` to **11.0.6** to address
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+Remove the override once ESLint and typescript-eslint depend on a patched version directly.
 
 ## Quality
 
