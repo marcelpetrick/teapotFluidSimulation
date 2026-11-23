@@ -27,7 +27,7 @@
     "@playwright/test": "1.65.0",
     "@types/node": "26.6.6",
     "@types/three": "0.187.0",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "@webgpu/types": "0.1.74",
     "eslint": "10.14.0",
     "happy-dom": "21.0.4",
@@ -36,7 +36,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.2",
     "vite": "8.3.7",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
